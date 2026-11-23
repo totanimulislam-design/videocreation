@@ -33,10 +33,13 @@ python scripts/build_flyer.py
 python -m unittest discover -s tests -v
 ```
 
-The build writes to `flyer/` by default (override with `--output PATH`). A
+The build writes to `flyer/` by default (override with `--output PATH`). The
+180 dpi PNG proof is also checked in at [`assets/common-ground.png`](assets/common-ground.png)
+for direct viewing; the SVG and print PDF exports are generated on demand. A
 [GitHub Actions workflow](.github/workflows/flyer.yml) runs the same checks and
-uploads the four files as the `common-ground-flyer` artifact. Generated exports
-are ignored by Git; the generator, font files, and tests are the source of truth.
+uploads all four generated files as the `common-ground-flyer` artifact. Generated
+exports are otherwise ignored by Git; the generator, font files, and tests are the
+source of truth.
 
 | Export | Use |
 | --- | --- |
