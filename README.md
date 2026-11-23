@@ -12,6 +12,58 @@ There are two broad workflows:
 
 ---
 
+## Project: Common Ground — Urban Futures Forum
+
+**Common Ground** is an original A4 flyer for a fictional urban-design forum in
+Dhaka. The design pairs a two-line masthead and date rail with an illustrated
+architectural study, a three-column programme, and a full-bleed date reminder.
+The civic model is generated from projected coordinates: every roof, terrace,
+façade, contour and stipple dot is vector geometry.
+
+### Build, check, and edit
+
+Use Python 3.11 or newer. Fonts and their OFL licenses are bundled under
+[`assets/fonts/`](assets/fonts/); building does not download fonts or artwork.
+
+```sh
+python -m venv .venv
+source .venv/bin/activate  # Windows PowerShell: .venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+python scripts/build_flyer.py
+python -m unittest discover -s tests -v
+```
+
+The build writes to `flyer/` by default (override with `--output PATH`). A
+[GitHub Actions workflow](.github/workflows/flyer.yml) runs the same checks and
+uploads the four files as the `common-ground-flyer` artifact. Generated exports
+are ignored by Git; the generator, font files, and tests are the source of truth.
+
+| Export | Use |
+| --- | --- |
+| `common-ground.svg` | Layered artwork at A4 trim (210 × 297 mm). |
+| `common-ground-bleed.svg` | Layered artwork at 216 × 303 mm, including 3 mm bleed on every side. |
+| `common-ground-print.pdf` | Vector print production file: A4 TrimBox, 3 mm BleedBox, and crop marks outside the bleed. |
+| `common-ground.png` | 180 dpi, A4-trim raster proof for quick viewing and sharing. |
+
+Edit `EVENT` and `layout()` in [`scripts/build_flyer.py`](scripts/build_flyer.py)
+to update the copy and typography; edit `drawing()` to change the illustration.
+Check the proof after changing copy lengths. The SVGs have named Inkscape layers
+for stock, masthead, illustration, programme, and footer. Text is outlined in the
+exports, so edit the copy in Python rather than treating the outlines as text boxes.
+The print PDF uses untagged RGB from sRGB hex values; it is not CMYK or certified
+PDF/X. Ask your printer for their ICC/output requirements before production.
+
+### Reference study
+
+The [Magnific professional flyer collection](https://www.magnific.com/psd/professional-flyer)
+provided the reference for hierarchy, segmented layouts, and high-contrast date or
+call-to-action blocks. The catalogue listings and a sample of available thumbnails
+were reviewed; the live catalogue was not exhaustively visually inspected. No stock
+PSD, photographs, or layouts were imported. The event details are sample copy, not a
+real announcement.
+
+---
+
 ## 1. The Print & Publishing Approach (Python + ReportLab / WeasyPrint)
 
 If your goal is traditional commercial flyers, posters, and banners with complex
