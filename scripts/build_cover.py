@@ -12,9 +12,9 @@ import argparse
 from contextlib import contextmanager
 from functools import lru_cache
 from html import escape
+from math import atan, cos, sin
 from pathlib import Path
 
-import numpy as np
 import resvg_py
 from fontTools.pens.svgPathPen import SVGPathPen
 from fontTools.pens.boundsPen import BoundsPen
@@ -359,12 +359,12 @@ def rounded_rhombus(cx, cy, half_w, half_h, radius):
     stroke's outer edge reaches exactly the four tips and rounds them with `radius`.
     """
     stroke = radius
-    theta = np.arctan(half_w / half_h)              # half-angle at the top/bottom tips
-    inset = stroke / 2 / np.sin(theta)               # shrink along the axis at the tips
+    theta = atan(half_w / half_h)                   # half-angle at the top/bottom tips
+    inset = stroke / 2 / sin(theta)                  # shrink along the axis at the tips
     top = (cx, cy - half_h + inset)
     bottom = (cx, cy + half_h - inset)
-    right = (cx + half_w - stroke / 2 / np.cos(theta), cy)
-    left = (cx - half_w + stroke / 2 / np.cos(theta), cy)
+    right = (cx + half_w - stroke / 2 / cos(theta), cy)
+    left = (cx - half_w + stroke / 2 / cos(theta), cy)
     return ('M' + ' L'.join(f'{n(mm(x))} {n(mm(y))}' for x, y in (top, right, bottom, left)) + ' Z',
             stroke)
 
