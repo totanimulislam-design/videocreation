@@ -5,7 +5,8 @@ from xml.etree import ElementTree as ET
 
 import pymupdf
 
-from scripts.build_cover import export
+import scripts.build_cover as B
+from scripts.build_cover import export, n
 
 SVG = '{http://www.w3.org/2000/svg}'
 MM = 300 / 25.4  # proof pixels per millimetre
@@ -54,8 +55,11 @@ class CoverExports(unittest.TestCase):
         # three ribbons, two rules, panel ground, foot swell
         self.assertEqual(len(defs.findall('./' + SVG + 'linearGradient')), 7)
         self.assertEqual(len(defs.findall('./' + SVG + 'pattern')), 1)
+        # type/logo soft shadow, the disc glow, and the grid's softening blur
         self.assertEqual(sorted(f.get('id') for f in defs.findall('./' + SVG + 'filter')),
-                         ['f-glow', 'f-soft'])
+                         ['f-glow', 'f-grid', 'f-soft'])
+        blur = defs.find('./' + SVG + 'filter[@id="f-grid"]/' + SVG + 'feGaussianBlur')
+        self.assertEqual(blur.get('stdDeviation'), n(B.mm(B.CHECKER_SOFT)))
 
     def test_ink_lands_on_measured_boxes(self):
         """Type is fitted by ink width, so the rendered ink hits the reference boxes (mm)."""
@@ -115,7 +119,7 @@ class CoverExports(unittest.TestCase):
 
             self.assertEqual(sample(60, 170), (255, 255, 255))       # open white
             self.assertGreater(min(sample(27, 9.5)), 150)             # grid cell grey
-            self.assertEqual(sample(31.5, 9.5), (255, 255, 255))     # grid cell white
+            self.assertEqual(sample(31.5, 9.5), (247, 247, 247))     # grid cell white
             self.assertLess(sample(10, 240)[0], 90)                  # panel ground
             self.assertGreater(sample(175, 290)[1], 150)             # foot swell
 
