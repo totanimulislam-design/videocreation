@@ -84,8 +84,96 @@ def smooth_along(points, sigma_mm, closed, step=1.0):
     return out
 
 
-def contour(mask, xs, ys, tol=0.3, sigma=0.7, smooth_mm=2.5):
-    """Longest sub-pixel contour of `mask` as (x, y) mm points (see module docstring)."""
+def field(a, sigma_mm=1.5):
+    """Luminance of the reference, blurred by `sigma_mm` so the checker averages out.
+
+    Blurring a monotonic edge ramp does not move its midpoint, so 50% crossings found
+    on this field are the true edge positions; the binary colour thresholds in
+    masks() are not (they sit 30–40% into the ramp, i.e. up to 1 mm inside).
+    """
+    return ndimage.gaussian_filter(a.mean(axis=2), sigma_mm * a.shape[0] / TRIM.height)
+
+
+def sampler(field):
+    """Bilinear sampler of a reference-sized array at (x, y) millimetres."""
+    def sample(x, y):
+        px = np.clip(x / 210 * TRIM.width + TRIM.x0 - 0.5, 0, field.shape[1] - 1.001)
+        py = np.clip(y / 297 * TRIM.height + TRIM.y0 - 0.5, 0, field.shape[0] - 1.001)
+        x0, y0 = int(px), int(py)
+        fx, fy = px - x0, py - y0
+        return ((1 - fx) * (1 - fy) * field[y0, x0] + fx * (1 - fy) * field[y0, x0 + 1]
+                + (1 - fx) * fy * field[y0 + 1, x0] + fx * fy * field[y0 + 1, x0 + 1])
+    return sample
+
+
+def plateaus(left, right):
+    """Extreme values of the two far ends of a profile: the interior and exterior
+    levels, ignoring faint halos or shadows that would bias a median."""
+    if np.median(left) > np.median(right):
+        return float(left.max()), float(right.min())
+    return float(left.min()), float(right.max())
+
+
+def crossing(sample, p, normal, reach=3.0, step=0.1):
+    """Offset along `normal` (mm) where the field crosses the inside/outside midpoint.
+
+    Returns 0 when the contrast is too weak to trust.
+    """
+    s = np.arange(-reach, reach + step / 2, step)
+    prof = np.array([sample(p[0] + normal[0] * d, p[1] + normal[1] * d) for d in s])
+    far = reach * 0.55
+    inside, outside = plateaus(prof[s <= -far], prof[s >= far])
+    if abs(outside - inside) < 20:
+        return 0.0
+    w = (prof - inside) / (outside - inside)              # 0 inside … 1 outside
+    hits = []
+    for i in range(len(s) - 1):
+        if (w[i] < .5) != (w[i + 1] < .5):
+            hits.append(s[i] + (0.5 - w[i]) / (w[i + 1] - w[i]) * step)
+    return float(min(hits, key=abs)) if hits else 0.0
+
+
+def snap_closed(pts, sample, reach=3.0):
+    """Move every point of a dense closed contour to the 50% edge along its outward normal."""
+    moved = pts.copy()
+    for i, p in enumerate(pts):
+        prev, nxt = pts[i - 1], pts[(i + 1) % len(pts)]
+        t = nxt - prev
+        t /= np.hypot(*t) or 1.0
+        normal = np.array([t[1], -t[0]])
+        if in_polygon(p + normal * 0.8, pts):              # make it point outward
+            normal = -normal
+        moved[i] = p + normal * crossing(sample, p, normal, reach)
+    return moved
+
+
+def snap_edge_y(points, sample, reach=3.0, inside_below=True):
+    """Refine (x, y) samples of a mostly horizontal edge to the 50% crossing, searching
+    vertically around the given y (the interior is below by default)."""
+    out = []
+    for x, y in points:
+        sign = 1.0 if inside_below else -1.0
+        prof_y = np.arange(-reach, reach + 0.05, 0.1)
+        prof = np.array([sample(x, y + sign * d) for d in prof_y])   # d>0 runs toward the interior
+        inside, outside = plateaus(prof[prof_y <= -reach * 0.55], prof[prof_y >= reach * 0.55])
+        if abs(outside - inside) < 20:
+            out.append((x, y))
+            continue
+        w = (prof - inside) / (outside - inside)
+        hits = []
+        for i in range(len(prof_y) - 1):
+            if (w[i] < .5) != (w[i + 1] < .5):
+                hits.append(prof_y[i] + (0.5 - w[i]) / (w[i + 1] - w[i]) * 0.1)
+        out.append((x, y + sign * (min(hits, key=abs) if hits else 0.0)))
+    return out
+
+
+def contour(mask, xs, ys, tol=0.3, sigma=0.7, smooth_mm=2.5, sample=None):
+    """Longest sub-pixel contour of `mask` as (x, y) mm points (see module docstring).
+
+    With `sample` (a reference sampler) the smoothed contour is snapped to the true
+    50% edge before simplification.
+    """
     soft = ndimage.gaussian_filter(mask.astype(float), sigma) if sigma else mask.astype(float)
     curves = measure.find_contours(soft, 0.5)
     if not curves:
@@ -95,6 +183,8 @@ def contour(mask, xs, ys, tol=0.3, sigma=0.7, smooth_mm=2.5):
     closed = bool(np.allclose(pts[0], pts[-1]))
     if smooth_mm:
         pts = smooth_along(pts, smooth_mm, closed)
+    if sample is not None:
+        pts = smooth_along(snap_closed(pts, sample), 0.6, closed)
     if closed:
         k = int(np.hypot(*(pts - pts[0]).T).argmax())
         return np.vstack([rdp(pts[:k + 1], tol)[:-1], rdp(pts[k:], tol)[:-1]])
@@ -174,12 +264,12 @@ def largest(mask):
     return labels == (int(np.argmax(sizes)) + 1)
 
 
-def ribbons(green, xs, ys):
+def ribbons(green, xs, ys, trace=None):
     labels, n = ndimage.label(green)
     sizes = ndimage.sum(green, labels, range(1, n + 1))
     found = {}
     for idx in np.argsort(sizes)[::-1][:3]:
-        pts = contour(labels == idx + 1, xs, ys)
+        pts = trace(labels == idx + 1, xs, ys) if trace else contour(labels == idx + 1, xs, ys)
         x0, x1, y0, y1 = pts[:, 0].min(), pts[:, 0].max(), pts[:, 1].min(), pts[:, 1].max()
         name = 'crescent' if y0 < 85 and x1 > 150 else ('left' if x0 < 20 else 'swoosh')
         found[name] = pts
@@ -188,13 +278,16 @@ def ribbons(green, xs, ys):
 
 def emit(a, xs, ys):
     xs, ys, r, g, b, lum, green, navy, grey = masks(a)
-    shapes = {name: into_bleed(pts) for name, pts in ribbons(green, xs, ys).items()}
+    sample = sampler(field(a))
+    with_sample = lambda mask, xs_, ys_: contour(mask, xs_, ys_, sample=sample)
+    shapes = {name: into_bleed(pts) for name, pts in ribbons(green, xs, ys, trace=with_sample).items()}
 
     # Disc: traced, de-spiked against the crescent's dark tip, extended into the bleed.
     raw = contour(largest(navy), xs, ys, tol=0.0, smooth_mm=0)
     dense = despike(raw, raw.mean(axis=0))
     centre = dense.mean(axis=0)
     dense = smooth_along(dense, 2.5, True)
+    dense = smooth_along(snap_closed(dense, sample), 0.6, True)
     k = int(np.hypot(*(dense - dense[0]).T).argmax())
     disc = np.vstack([rdp(dense[:k + 1], 0.3)[:-1], rdp(dense[k:], 0.3)[:-1]])
     disc = into_bleed(disc, edge=2.0)
@@ -210,11 +303,13 @@ def emit(a, xs, ys):
     # Grid: grey cells closed over the white cells, largest region, dilated 1 mm so
     # the ribbons and disc painted on top hide any hairline gap.
     closed = ndimage.binary_fill_holes(ndimage.binary_closing(grey, structure=np.ones((5, 5)), iterations=2))
-    grid = into_bleed(dilate(contour(largest(closed), xs, ys), 1.0))
+    grid_sample = sampler(field(a, sigma_mm=2.5))
+    grid = into_bleed(dilate(contour(largest(closed), xs, ys, sample=grid_sample), 1.0))
 
     # Panel top edge and the foot-band swell, per 2 mm column, smoothed along x.
     lum = a.mean(axis=2)
     g, b = a[..., 1], a[..., 2]
+    gb_sample = sampler(ndimage.gaussian_filter(g - b, 1.5))
     panel_top, band_top = [], {}
     for x in range(0, 211, 2):
         col = min(int(round(TRIM.x0 + x / 210 * TRIM.width)), a.shape[1] - 1)
@@ -236,8 +331,8 @@ def emit(a, xs, ys):
         pts = np.array(points, dtype=float)
         pts[:, 1] = ndimage.gaussian_filter1d(pts[:, 1], 2.5 / 2, mode='nearest')
         return pts
-    band = smooth_edge(sorted(band_top.items()))
-    panel = smooth_edge(panel_top)
+    band = smooth_edge(snap_edge_y(sorted(band_top.items()), gb_sample))
+    panel = smooth_edge(snap_edge_y(panel_top, sample))
 
     def lit(pts, per=5, decimals=1):
         rows = []

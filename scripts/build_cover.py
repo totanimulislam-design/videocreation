@@ -14,6 +14,7 @@ from functools import lru_cache
 from html import escape
 from pathlib import Path
 
+import numpy as np
 import resvg_py
 from fontTools.pens.svgPathPen import SVGPathPen
 from fontTools.pens.boundsPen import BoundsPen
@@ -28,11 +29,15 @@ INK = '#262626'               # near-black used for the business name
 GREEN = '#8fc64a'              # lime used for DESIGN, NAME and the year
 WHITE = '#ffffff'
 NAVY = '#1c2c3b'               # flat navy of the disc
-CHECKER = '#bfbfbf'            # grey cells of the transparency grid
+CHECKER = '#bcbcbc'            # grey cells of the transparency grid
 
 FONTS = {'regular': 'montserrat-latin-400-regular',
+         'medium': 'montserrat-latin-500-medium',
+         'semibold': 'montserrat-latin-600-semibold',
          'bold': 'montserrat-latin-700-bold',
-         'black': 'montserrat-latin-800-extrabold'}
+         'black': 'montserrat-latin-800-extrabold',
+         'jost': 'jost-latin-700-bold',       # the year's digits: Jost's short-bar 5
+         'jost-semibold': 'jost-latin-600-semibold', 'jost-medium': 'jost-latin-500-medium'}
 
 # The copy is template copy. Change these values before repurposing.
 COPY = {
@@ -40,7 +45,7 @@ COPY = {
     'cover': ('COVER', 'DESIGN'),
     'business': ('YOUR BUSINESS', 'NAME'),
     'contact': ('FOR MORE INFO', '+012 3456 789', 'your website here'),
-    'year': ('20', '50'),
+    'year': '2050',
 }
 
 
@@ -203,7 +208,7 @@ class Art:
                 + '\n'.join(self.content) + '\n</svg>\n')
 
     def text(self, x, baseline, copy, size, face='bold', fill=INK, track=0,
-             align='left', fit=None, condense=1.0):
+             align='left', fit=None, condense=1.0, word=0):
         """Outline `copy` at `size` design units and return the width of the line.
 
         `condense` narrows the letterforms horizontally (1 = Montserrat as drawn).
@@ -211,6 +216,7 @@ class Art:
         that ink: its left edge, right edge, or centre. Narrowing the glyphs first
         keeps the word spaces intact when a line must be much narrower than its
         natural width, which is how the reference's condensed setting behaves.
+        `word` adds that much extra space (design units) at every word gap.
         """
         shapes = [glyph(face, char) for char in copy]
         pairs = kerning(face)
@@ -223,10 +229,11 @@ class Art:
         lsb = bounds[0][0] if bounds[0] else 0
         rsb = advances[-1] - bounds[1][2] if bounds[1] else 0
         ink = (sum(advances) - lsb - rsb) * stretch          # before tracking
+        spaces = copy.count(' ')
         step = track
         if fit is not None:
-            step += (fit - ink - track * (len(copy) - 1)) / max(len(copy) - 1, 1)
-        width = ink + step * (len(copy) - 1)
+            step += (fit - ink - track * (len(copy) - 1) - word * spaces) / max(len(copy) - 1, 1)
+        width = ink + step * (len(copy) - 1) + word * spaces
         x -= {'left': 0, 'right': width, 'center': width / 2}[align]
         x -= lsb * stretch
         with self.group(transform=f'translate({n(x)} {n(baseline)}) scale({n(stretch)} {n(-scale)})',
@@ -235,7 +242,7 @@ class Art:
             for char, advance, (_, d) in zip(copy, advances, shapes):
                 if d:
                     self.tag('path', d=d, transform=f'translate({n(at)} 0)')
-                at += advance + step / stretch
+                at += advance + step / stretch + (word / stretch if char == ' ' else 0)
         return width
 
 # Edges traced from the reference with scripts/trace_cover.py --emit; millimetres
@@ -243,84 +250,110 @@ class Art:
 # band_top are open edges running left to right.
 SHAPES = {
     'swoosh': [
-        (106.4, 43.7), (103.4, 43.8), (94.8, 42.1), (85.4, 39.3), (74.3, 35.7),
-        (60.0, 29.1), (49.0, 22.6), (41.2, 16.7), (29.9, 5.4), (27.8, 2.3),
-        (27.8, 0.5), (28.9, -4.0), (32.5, -4.0), (44.5, -4.0), (48.2, -4.0),
-        (50.5, 1.9), (64.3, 16.0), (71.2, 21.6), (82.5, 29.4), (97.2, 37.5),
-        (105.9, 41.6), (106.8, 42.5),
+        (114.0, 47.2), (110.0, 46.0), (106.0, 44.4), (104.0, 43.5), (100.0, 43.2), (95.7, 42.2),
+        (91.8, 41.2), (84.3, 38.6), (80.4, 37.9), (73.1, 34.6), (67.4, 32.8),
+        (57.9, 27.4), (53.3, 25.3), (48.3, 22.1), (37.9, 12.7), (27.8, 1.7),
+        (27.9, -4.0), (29.5, -4.0), (44.5, -4.0), (47.4, -4.0), (51.2, 3.4),
+        (62.4, 14.8), (72.4, 23.0), (80.7, 28.8), (88.0, 33.4), (96.0, 37.6),
+        (102.0, 40.9), (106.0, 42.9), (110.0, 44.3), (114.0, 45.4),
     ],
-    'left': [
-        (1.0, 194.9), (-4.0, 194.1), (-4.0, 191.5), (-4.0, 168.6), (0.6, 164.9),
-        (4.1, 159.2), (14.2, 145.9), (27.0, 131.1), (39.5, 118.8), (48.4, 111.3),
-        (64.2, 99.5), (79.7, 90.6), (79.6, 91.7), (78.1, 93.6), (70.5, 99.8),
-        (55.9, 114.1), (47.4, 123.7), (36.8, 137.7), (15.9, 169.4), (3.0, 192.6),
+    'left': [  # upper edge then lower edge, read from the reference column by column
+        (0.0, 165.6), (10.0, 152.4), (20.0, 140.1), (30.0, 128.2), (40.0, 118.7),
+        (50.0, 110.5), (60.0, 103.1), (70.0, 96.7), (78.0, 93.0), (83.5, 90.4),
+        (83.5, 90.4), (80.0, 94.5), (70.0, 100.3), (60.0, 111.3), (50.0, 122.0),
+        (40.0, 134.8), (30.0, 148.4), (20.0, 164.1), (10.0, 181.1), (5.0, 190.5),
+        (0.0, 197.6), (-4.0, 199.5), (-4.0, 165.6),
     ],
     'crescent': [
-        (174.1, 184.5), (172.2, 184.8), (169.4, 184.5), (159.8, 183.7), (149.7, 180.1),
-        (141.5, 176.7), (132.9, 172.1), (123.8, 166.1), (116.2, 159.9), (111.9, 155.7),
-        (101.9, 143.8), (96.2, 134.6), (90.6, 123.0), (86.5, 111.0), (84.0, 100.6),
-        (82.7, 92.0), (80.3, 90.0), (84.5, 88.2), (89.5, 85.5), (101.2, 82.5),
-        (103.6, 81.9), (104.8, 82.3), (105.7, 84.1), (109.8, 106.0), (113.8, 118.1),
-        (117.7, 127.5), (125.5, 141.3), (134.7, 153.5), (145.0, 164.0), (154.8, 171.2),
-        (173.4, 182.9),
+        (174.2, 184.9), (169.7, 184.5), (158.9, 183.3), (149.4, 180.0), (140.3, 175.9),
+        (132.4, 171.6), (124.1, 166.0), (116.4, 159.7), (110.8, 154.0), (104.3, 146.3),
+        (99.8, 139.7), (95.3, 131.9), (91.1, 122.9), (87.5, 112.5),
+        (84.0, 100.8), (83.6, 96.0), (83.6, 88.8), (83.6, 88.8), (88.0, 86.8), (92.0, 85.6), (96.0, 84.3),
+        (100.0, 81.9), (103.0, 81.3), (104.5, 81.0), (104.8, 84.0), (107.3, 97.6),
+        (109.2, 105.9), (111.3, 113.0), (116.7, 127.0), (124.1, 140.4), (133.2, 154.8),
+        (143.0, 162.6), (151.5, 169.4), (163.0, 177.0), (168.2, 181.6),
     ],
-    'disc': [
-        (214.0, 188.7), (206.0, 189.5), (201.1, 189.5), (188.4, 188.5), (179.7, 187.1),
-        (161.3, 176.7), (147.5, 167.3), (135.2, 156.2), (125.4, 144.0), (120.6, 136.7),
-        (115.1, 126.3), (112.4, 120.0), (107.4, 104.1), (105.3, 92.6), (103.4, 77.1),
-        (103.3, 73.1), (104.3, 63.4), (106.1, 52.8), (110.8, 36.8), (113.8, 29.6),
-        (118.3, 20.8), (124.0, 11.6), (128.7, 5.2), (132.0, -4.0), (134.4, -4.0),
-        (140.2, -4.0), (204.2, -4.0), (207.7, -4.0), (214.0, 2.0), (214.0, 7.7),
-        (214.0, 181.7), (214.0, 185.7),
+    'disc': [  # left/top edge: circle centre (218.9, 78.1) r 115.3, fitted to the reference
+        (137.8, -4.0), (132.2, 2.0), (127.3, 8.0), (123.0, 14.0),
+        (119.2, 20.0), (116.0, 26.0), (113.1, 32.0), (110.7, 38.0),
+        (108.7, 44.0), (107.0, 50.0), (105.7, 56.0), (104.7, 62.0),
+        (104.0, 68.0), (103.6, 74.0), (103.6, 80.0), (103.8, 86.0),
+        (104.4, 92.0), (105.3, 98.0), (106.5, 104.0), (108.1, 110.0),
+        (110.0, 116.0), (112.3, 122.0), (114.9, 128.0), (118.0, 134.0),
+        (121.6, 140.0), (125.7, 146.0), (130.4, 152.0), (135.8, 158.0),
+        (142.0, 164.0), (171.0, 184.2), (177.3, 187.1), (187.2, 188.9),
+        (199.1, 189.9), (206.1, 190.1), (214.0, 183.2), (214.0, 186.2),
+        (214.0, 189.4), (214.0, 190.1), (214.0, -4.0),
     ],
     'grid': [
-        (0.6, 161.4), (-4.0, 160.2), (-4.0, 158.7), (-4.0, 155.0), (-4.0, 5.0),
-        (0.6, 2.4), (1.8, 1.0), (4.8, -4.0), (19.6, -4.0), (23.2, 0.8),
-        (26.1, 2.8), (29.5, 8.0), (39.0, 16.9), (43.0, 20.2), (49.7, 23.7),
-        (58.4, 29.5), (73.2, 36.0), (81.4, 39.0), (91.7, 41.8), (105.8, 44.5),
-        (106.7, 46.7), (106.3, 49.4), (104.4, 59.9), (102.7, 75.5), (101.6, 78.2),
-        (100.3, 79.4), (93.9, 83.0), (82.2, 87.8), (73.4, 93.5), (68.4, 95.7),
-        (46.4, 111.9), (40.0, 115.8), (36.0, 120.4), (28.0, 127.4), (17.6, 140.0),
-        (15.9, 141.4),
+        (0.9, 162.1), (-4.0, 160.8), (-4.0, 157.9), (-4.0, 150.9), (-4.0, 73.9),
+        (-4.0, 73.0), (-4.0, 67.0), (-4.0, 64.1), (-4.0, 58.1), (-4.0, 56.2),
+        (-4.0, 50.2), (-4.0, 47.3), (-4.0, 41.3), (-4.0, 39.4), (-4.0, 33.5),
+        (-4.0, 30.5), (-4.0, 24.6), (-4.0, 22.6), (-4.0, 16.7), (-4.0, 14.8),
+        (-4.0, 7.8), (0.7, 2.2), (2.1, 0.7), (3.9, -4.0), (6.9, -4.0),
+        (11.9, -4.0), (17.8, -4.0), (24.7, 0.6), (26.4, 1.6), (28.4, 3.8),
+        (31.3, 7.9), (40.0, 16.2), (50.5, 23.8), (58.2, 28.5), (67.1, 33.0),
+        (80.1, 38.3), (90.0, 41.5), (100.0, 43.6), (105.0, 44.2), (108.3, 45.8),
+        (108.6, 47.6), (107.0, 48.8), (104.4, 62.3), (102.9, 77.2), (100.8, 80.6),
+        (98.2, 82.1), (85.4, 87.7), (81.5, 88.2), (77.3, 90.7), (77.3, 90.2),
+        (62.4, 100.2), (46.1, 113.4), (41.2, 116.9), (29.6, 127.9), (17.2, 142.2),
     ],
     'panel_top': [
-        (0, 227.2), (2, 226.9), (4, 226.6), (6, 226.3), (8, 226.0),
-        (10, 225.7), (12, 225.4), (14, 225.1), (16, 224.9), (18, 224.8),
-        (20, 224.8), (22, 224.8), (24, 224.8), (26, 224.8), (28, 224.8),
-        (30, 224.8), (32, 224.8), (34, 224.9), (36, 225.1), (38, 225.4),
-        (40, 225.7), (42, 226.0), (44, 226.3), (46, 226.7), (48, 227.0),
-        (50, 227.6), (52, 228.2), (54, 228.7), (56, 229.2), (58, 229.7),
-        (60, 230.4), (62, 231.2), (64, 232.0), (66, 232.7), (68, 233.4),
-        (70, 234.4), (72, 235.5), (74, 236.6), (76, 237.6), (78, 238.5),
-        (80, 239.5), (82, 240.7), (84, 241.9), (86, 243.0), (88, 244.1),
-        (90, 245.3), (92, 246.8), (94, 248.3), (96, 249.7), (98, 251.1),
-        (100, 252.4), (102, 253.7), (104, 254.6), (106, 254.9), (108, 254.3),
-        (110, 253.1), (112, 251.6), (114, 250.1), (116, 248.6), (118, 247.1),
-        (120, 245.8), (122, 244.6), (124, 243.3), (126, 242.0), (128, 240.7),
-        (130, 239.5), (132, 238.5), (134, 237.6), (136, 236.7), (138, 235.8),
-        (140, 234.9), (142, 234.0), (144, 233.1), (146, 232.3), (148, 231.6),
-        (150, 230.8), (152, 230.2), (154, 229.6), (156, 229.1), (158, 228.5),
-        (160, 227.9), (162, 227.4), (164, 226.9), (166, 226.6), (168, 226.3),
-        (170, 226.0), (172, 225.7), (174, 225.4), (176, 225.1), (178, 224.9),
-        (180, 224.8), (182, 224.8), (184, 224.8), (186, 224.8), (188, 224.8),
-        (190, 224.8), (192, 224.8), (194, 224.9), (196, 225.1), (198, 225.4),
-        (200, 225.6), (202, 225.8), (204, 226.0), (206, 226.4), (208, 226.8),
-        (210, 227.2),
+        (0, 227.5), (2, 227.3), (4, 227.0), (6, 226.7), (8, 226.4),
+        (10, 226.1), (12, 225.8), (14, 225.6), (16, 225.4), (18, 225.2),
+        (20, 225.1), (22, 225.1), (24, 225.0), (26, 225.0), (28, 225.0),
+        (30, 225.1), (32, 225.2), (34, 225.3), (36, 225.5), (38, 225.8),
+        (40, 226.0), (42, 226.3), (44, 226.6), (46, 227.0), (48, 227.4),
+        (50, 227.8), (52, 228.3), (54, 228.9), (56, 229.4), (58, 230.0),
+        (60, 230.7), (62, 231.4), (64, 232.1), (66, 232.9), (68, 233.7),
+        (70, 234.5), (72, 235.5), (74, 236.5), (76, 237.4), (78, 238.4),
+        (80, 239.5), (82, 240.6), (84, 241.8), (86, 243.0), (88, 244.2),
+        (90, 245.4), (92, 246.8), (94, 248.2), (96, 249.6), (98, 251.1),
+        (100, 252.5), (102, 253.9), (104, 254.9), (106, 255.2), (108, 254.7),
+        (110, 253.5), (112, 252.1), (114, 250.6), (116, 249.1), (118, 247.7),
+        (120, 246.4), (122, 245.1), (124, 243.8), (126, 242.5), (128, 241.3),
+        (130, 240.2), (132, 239.1), (134, 238.1), (136, 237.1), (138, 236.1),
+        (140, 235.2), (142, 234.3), (144, 233.5), (146, 232.7), (148, 231.9),
+        (150, 231.2), (152, 230.5), (154, 229.9), (156, 229.3), (158, 228.8),
+        (160, 228.2), (162, 227.8), (164, 227.3), (166, 226.9), (168, 226.6),
+        (170, 226.3), (172, 226.0), (174, 225.7), (176, 225.5), (178, 225.3),
+        (180, 225.2), (182, 225.1), (184, 225.0), (186, 225.0), (188, 225.0),
+        (190, 225.1), (192, 225.2), (194, 225.3), (196, 225.5), (198, 225.7),
+        (200, 225.9), (202, 226.1), (204, 226.4), (206, 226.7), (208, 227.1),
+        (210, 227.3),
     ],
     'band_top': [
-        (108, 261.5), (110, 261.8), (112, 262.5), (114, 263.6), (116, 265.0),
-        (118, 266.4), (120, 267.6), (122, 268.7), (124, 269.7), (126, 270.8),
-        (128, 272.0), (130, 273.1), (132, 274.1), (134, 275.1), (136, 276.1),
-        (138, 277.2), (140, 278.3), (142, 279.2), (144, 279.8), (146, 280.4),
-        (148, 281.0), (150, 281.6), (152, 282.1), (154, 282.7), (156, 283.3),
-        (158, 283.9), (160, 284.4), (162, 285.0), (164, 285.6), (166, 286.1),
-        (168, 286.7), (170, 287.2), (172, 287.7), (174, 288.1), (176, 288.5),
-        (178, 288.7), (180, 288.8), (182, 288.8), (184, 288.8), (186, 288.8),
-        (188, 288.8), (190, 288.8), (192, 288.7), (194, 288.5), (196, 288.2),
-        (198, 287.9), (200, 287.6), (202, 287.2), (204, 286.7), (206, 286.3),
-        (208, 285.8), (210, 285.4),
+        (108, 261.5), (110, 261.8), (112, 262.5), (114, 263.5), (116, 264.8),
+        (118, 266.1), (120, 267.3), (122, 268.5), (124, 269.6), (126, 270.8),
+        (128, 272.1), (130, 273.2), (132, 274.2), (134, 275.3), (136, 276.3),
+        (138, 277.3), (140, 278.2), (142, 279.1), (144, 279.9), (146, 280.7),
+        (148, 281.4), (150, 282.2), (152, 282.8), (154, 283.5), (156, 284.1),
+        (158, 284.7), (160, 285.3), (162, 285.8), (164, 286.3), (166, 286.7),
+        (168, 287.2), (170, 287.5), (172, 287.9), (174, 288.2), (176, 288.4),
+        (178, 288.6), (180, 288.7), (182, 288.8), (184, 288.9), (186, 288.9),
+        (188, 288.8), (190, 288.7), (192, 288.6), (194, 288.4), (196, 288.2),
+        (198, 287.9), (200, 287.6), (202, 287.2), (204, 286.8), (206, 286.4),
+        (208, 285.9), (210, 285.6),
     ],
 }
+
+def rounded_rhombus(cx, cy, half_w, half_h, radius):
+    """Path of a rhombus with tips rounded by `radius` (mm), outer size 2·half × 2·half.
+
+    The polygon is shrunk so that, once stroked with `radius` and a round join, the
+    stroke's outer edge reaches exactly the four tips and rounds them with `radius`.
+    """
+    stroke = radius
+    theta = np.arctan(half_w / half_h)              # half-angle at the top/bottom tips
+    inset = stroke / 2 / np.sin(theta)               # shrink along the axis at the tips
+    top = (cx, cy - half_h + inset)
+    bottom = (cx, cy + half_h - inset)
+    right = (cx + half_w - stroke / 2 / np.cos(theta), cy)
+    left = (cx - half_w + stroke / 2 / np.cos(theta), cy)
+    return ('M' + ' L'.join(f'{n(mm(x))} {n(mm(y))}' for x, y in (top, right, bottom, left)) + ' Z',
+            stroke)
+
+
 def path_mm(points, closed=True):
     """Catmull-Rom spline through traced (x, y) millimetre points."""
     return smooth([(mm(x), mm(y)) for x, y in points], closed=closed)
@@ -328,12 +361,14 @@ def path_mm(points, closed=True):
 
 def checker(a):
     """The transparency grid, filling the traced region left of the swoosh and disc."""
+    # Cells measure 3.92 × 4.17 mm with edges at x ≡ 2.49, y ≡ 2.90 (mod cell).
+    cw, ch = 3.92, 4.17
     a.defs.append(
-        f'<pattern id="p-grid" patternUnits="userSpaceOnUse" x="{n(mm(1.8))}" y="0" '
-        f'width="{n(mm(8))}" height="{n(mm(8))}">'
-        f'<rect width="{n(mm(8))}" height="{n(mm(8))}" fill="#ffffff"/>'
-        f'<rect width="{n(mm(4))}" height="{n(mm(4))}" fill="{CHECKER}"/>'
-        f'<rect x="{n(mm(4))}" y="{n(mm(4))}" width="{n(mm(4))}" height="{n(mm(4))}" fill="{CHECKER}"/>'
+        f'<pattern id="p-grid" patternUnits="userSpaceOnUse" x="{n(mm(2.49 - cw))}" y="{n(mm(2.9))}" '
+        f'width="{n(mm(2 * cw))}" height="{n(mm(2 * ch))}">'
+        f'<rect width="{n(mm(2 * cw))}" height="{n(mm(2 * ch))}" fill="#ffffff"/>'
+        f'<rect width="{n(mm(cw))}" height="{n(mm(ch))}" fill="{CHECKER}"/>'
+        f'<rect x="{n(mm(cw))}" y="{n(mm(ch))}" width="{n(mm(cw))}" height="{n(mm(ch))}" fill="{CHECKER}"/>'
         '</pattern>')
     a.path(path_mm(SHAPES['grid']), fill='url(#p-grid)')
 
@@ -365,35 +400,41 @@ def wordmark(a):
     """Logo diamond, logo line, the two-line wordmark, and its gradient rule."""
     glow = a.shadow('f-glow', mm(.2), mm(.5), mm(.8), '#06131c', .6)
     with a.group(filter=glow):
-        a.tag('rect', x=n(mm(165 - 4.7)), y=n(mm(15.8 - 4.7)), width=n(mm(9.4)), height=n(mm(9.4)),
-              rx=n(mm(2.2)), fill='#e2e3e5',
-              transform=f'rotate(45 {n(mm(165))} {n(mm(15.8))})')
-        a.text(mm(165), mm(35.5), COPY['logo'], 28, 'bold', WHITE, align='center',
-               fit=mm(29.3), condense=.68)
-        a.text(mm(165.05), mm(79.5), COPY['cover'][0], 73, 'black', WHITE, align='center',
-               fit=mm(58.7), condense=.87)
-        a.text(mm(166), mm(102.0), COPY['cover'][1], 86, 'black', GREEN, align='center',
-               fit=mm(77), condense=.87)
+        # Filled diamond: 14.1 × 16.8 mm, centre (165, 16.9), tips rounded ≈1.6 mm.
+        d, stroke = rounded_rhombus(165, 16.9, 7.3, 8.7, 1.6)
+        a.tag('path', d=d, fill='#e2e3e5', stroke='#e2e3e5',
+              **{'stroke-width': n(mm(stroke)), 'stroke-linejoin': 'round'})
+        a.text(mm(165), mm(35.5), COPY['logo'], 28.5, 'medium', WHITE, align='center', condense=.72)
+        a.text(mm(165.25), mm(80.95), COPY['cover'][0], 80, 'bold', WHITE, align='center',
+               fit=mm(61), condense=.84)
+        a.text(mm(165.5), mm(103.0), COPY['cover'][1], 91.4, 'bold', GREEN, align='center',
+               fit=mm(78.8), condense=.88)
     rule = a.gradient('g-rule-cover', [(0, '#8fc847'), (.13, '#8cc443'), (.28, '#82b846'),
                                        (.43, '#6b9a4d'), (.59, '#4c7d55'), (.74, '#316353'),
                                        (.89, '#174c52'), (1, '#0a3c53')],
-                      mm(131.7), mm(112.4), mm(197.2), mm(112.4))
-    a.rect(mm(131.7), mm(110.8), mm(65.5), mm(3.2), rule)
+                      mm(132.2), mm(112.9), mm(197.9), mm(112.9))
+    a.rect(mm(132.2), mm(111.6), mm(65.7), mm(2.6), rule)
 
 
 def name_block(a):
     """The business name, its green second line, and the rule beneath."""
     soft = a.shadow('f-soft', mm(.2), mm(.6), mm(.9), '#000000', .22)
     with a.group(filter=soft):
-        a.text(mm(18.3), mm(189.2), COPY['business'][0], 47.4, 'bold', INK, fit=mm(94.5),
-               condense=.92)
-        a.text(mm(18.3), mm(204.2), COPY['business'][1], 40, 'bold', '#9bcf4f', fit=mm(32.1),
-               condense=.88)
-    rule = a.gradient('g-rule-name', [(0, '#8fc545'), (.04, '#8cc345'), (.36, '#75a64e'),
-                                      (.67, '#416c53'), (.88, '#1f4a52'), (.97, '#0e414c'),
-                                      (1, '#0d404c')],
-                      mm(16.5), mm(213.9), mm(111), mm(213.9))
-    a.rect(mm(16.5), mm(212.3), mm(94.5), mm(3.2), rule)
+        a.text(mm(16.75), mm(190.25), COPY['business'][0], 51.4, 'bold', INK, fit=mm(95.4),
+               condense=.91)
+        a.text(mm(17.83), mm(206.58), COPY['business'][1], 53.1, 'bold', '#9bcf4f', fit=mm(35.5),
+               condense=.90)
+    rule = a.gradient('g-rule-name', [(0, '#8dc456'), (.07, '#8cc240'), (.2, '#8ac248'),
+                                      (.33, '#79ad4c'), (.45, '#639152'), (.58, '#4c7a54'),
+                                      (.7, '#39664f'), (.77, '#2b5b50'), (.87, '#1e4a52'),
+                                      (.97, '#0a3d49'), (1, '#0a3d49')],
+                      mm(16.5), mm(214.5), mm(113.3), mm(214.5))
+    a.rect(mm(16.5), mm(213.0), mm(96.8), mm(3.0), rule)
+
+
+#            size  condense  fit    x       align     baseline  face
+YEAR_DIGITS = [(110.5, .85, 14.3, 141.25, 'left', 268.25, 'jost-semibold'), (108.5, .84, 13.5, 170.67, 'right', 268.3, 'jost-semibold'),
+               (109, .86, 12.67, 172.75, 'left', 267.95, 'jost-semibold'), (109, .86, 12.6, 200.75, 'right', 268.25, 'jost-semibold')]
 
 
 def panel(a):
@@ -429,15 +470,18 @@ def panel(a):
     glow = a.shadow('f-glow', mm(.2), mm(.5), mm(.7), '#06131c', .45)
     heading, phone, site = COPY['contact']
     with a.group(filter=glow):
-        a.text(mm(18.3), mm(258.3), heading, 39, 'bold', '#eef6f4', fit=mm(63.3), condense=.76)
-        a.text(mm(18.3), mm(273.4), phone, 23, 'regular', '#eef6f4', fit=mm(45.9))
-        a.text(mm(18.3), mm(282.4), site, 23, 'regular', '#eef6f4', fit=mm(55))
-        # "20" in lime, "50" in white, flush right with the reference's word gap.
-        year, tail = COPY['year']
-        a.text(mm(169.7), mm(266.4), year, 99, 'bold', GREEN, align='right', fit=mm(27.6),
-               condense=.88)
-        a.text(mm(199.9), mm(266.4), tail, 99, 'bold', WHITE, align='right', fit=mm(25.7),
-               condense=.82)
+        a.text(mm(17.8), mm(258.8), heading, 35.5, 'semibold', '#eef6f4', fit=mm(65), condense=.9,
+               word=mm(1.75))
+        a.text(mm(18.8), mm(274.15), phone, 25.4, 'semibold', '#eef6f4', fit=mm(46.8), condense=1.15,
+               word=mm(.25))
+        a.text(mm(17.55), mm(282.9), site, 25.2, 'semibold', '#eef6f4', fit=mm(56.4), condense=1.15,
+               word=mm(.25))
+        # The year is set digit by digit in Jost (its short-bar 5 and oval 0 match the
+        # reference); "20" lime, "50" white. (size, condense, fit, x, align, baseline)
+        for digit, (size, condense, fit, x, align, baseline, face), fill in zip(
+                COPY['year'], YEAR_DIGITS, (GREEN, GREEN, WHITE, WHITE)):
+            a.text(mm(x), mm(baseline), digit, size, face, fill, align=align, fit=mm(fit),
+                   condense=condense)
 
 
 def layout():

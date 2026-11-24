@@ -40,8 +40,11 @@ class CoverExports(unittest.TestCase):
         # The template copy survives as accessible labels on the outlined runs.
         labels = {group.get('aria-label') for group in self.root.iter(SVG + 'g')}
         for line in ('YOUR LOGO', 'COVER', 'DESIGN', 'YOUR BUSINESS', 'NAME',
-                     'FOR MORE INFO', '+012 3456 789', 'your website here', '20', '50'):
+                     'FOR MORE INFO', '+012 3456 789', 'your website here'):
             self.assertIn(line, labels)
+        # The year is set digit by digit (Jost), each run labelled with its digit.
+        self.assertEqual([g.get('aria-label') for g in self.root.iter(SVG + 'g')
+                          if g.get('aria-label') in ('2', '0', '5')], ['2', '0', '5', '0'])
 
     def test_layers_and_paint(self):
         layers = self.root.findall('./' + SVG + 'g')
@@ -73,13 +76,16 @@ class CoverExports(unittest.TestCase):
             lime = lambda p: p[1] > p[0] + 35 and p[1] > 150
             white = lambda p: min(p) > 200
             dark = lambda p: max(p) < 90
+            # Reference boxes are 50 %-crossing measurements of the uploaded raster; its
+            # soft edges read ~0.5 mm wider on every side than the vector ink, so the
+            # tolerance is 1 mm.
             boxes = {
-                'COVER': (ink_bbox(125, 60, 210, 84, white), (135.7, 66.7, 194.4, 79.5)),
-                'DESIGN': (ink_bbox(120, 84, 210, 106, lime), (127.5, 86.8, 204.5, 102.4)),
-                'YOUR BUSINESS': (ink_bbox(10, 176, 120, 193, dark), (18.3, 180.9, 112.8, 189.2)),
-                'NAME': (ink_bbox(10, 194, 70, 209, lime), (18.3, 197.4, 50.4, 204.7)),
-                '20': (ink_bbox(135, 244, 172, 271, lime), (142.1, 248.6, 169.7, 266.8)),
-                '50': (ink_bbox(172, 244, 210, 271, white), (174.2, 248.6, 199.9, 266.8)),
+                'COVER': (ink_bbox(125, 60, 210, 84, white), (134.67, 66.67, 195.33, 80.67)),
+                'DESIGN': (ink_bbox(120, 84, 210, 106, lime), (127.0, 86.67, 205.0, 103.0)),
+                'YOUR BUSINESS': (ink_bbox(10, 176, 120, 193, dark), (17.5, 181.25, 112.8, 190.25)),
+                'NAME': (ink_bbox(10, 194, 70, 209, lime), (17.83, 197.5, 52.67, 206.33)),
+                '20': (ink_bbox(135, 244, 172, 271, lime), (141.25, 247.83, 170.67, 268.42)),
+                '50': (ink_bbox(172, 244, 210, 271, white), (173.0, 248.75, 200.75, 267.92)),
             }
             for label, (got, want) in boxes.items():
                 for g, w in zip(got, want):
