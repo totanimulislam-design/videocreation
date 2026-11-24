@@ -67,6 +67,62 @@ real announcement.
 
 ---
 
+## Project: Cover Design — Business Cover Template
+
+A second, smaller study: a single-page A4 cover rebuilt from a stock "cover design"
+template — transparency grid, green ribbons, a navy disc, a name block, and a waving
+contact panel. Where Common Ground leans on illustration and grids, this one is about
+curved vector shapes, gradient fills, and a tight wordmark. The copy is template copy
+("YOUR BUSINESS NAME", "2050") and is meant to be replaced.
+
+### Build, check, and edit
+
+Use Python 3.11 or newer. The build needs a real SVG rasteriser, because the artwork
+uses gradients and clip paths throughout; [`resvg`](https://pypi.org/project/resvg-py/)
+renders the PNG proofs, while PyMuPDF's SVG device silently drops both.
+
+```sh
+python -m venv .venv
+source .venv/bin/activate  # Windows PowerShell: .venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+python scripts/build_cover.py
+python -m unittest tests.test_cover -v
+```
+
+The build writes `cover/cover.svg`, `cover/cover-bleed.svg`, and `cover/cover.png` by
+default (override with `--output PATH`), and refreshes the 150 dpi PNG proof checked in
+at [`assets/cover.png`](assets/cover.png). A
+[GitHub Actions workflow](.github/workflows/cover.yml) runs the same checks and uploads
+the exports as the `cover-design` artifact. Montserrat is bundled under
+[`assets/fonts/`](assets/fonts/) with its OFL licence, so nothing is downloaded at
+build time; the bundled cuts cover ASCII plus common punctuation, so accented copy
+would need a wider subset.
+
+| Export | Use |
+| --- | --- |
+| `cover.svg` | Layered artwork at A4 trim (210 × 297 mm), text outlined. |
+| `cover-bleed.svg` | Layered artwork at 216 × 303 mm, including 3 mm bleed on every side. |
+| `cover.png` | 300 dpi raster proof. |
+| `assets/cover.png` | 150 dpi proof checked in for quick viewing. |
+
+Edit `COPY` and the drawing functions in
+[`scripts/build_cover.py`](scripts/build_cover.py) to update the copy and shapes. The
+sheet is drawn with a small SVG writer: `smooth()` turns a list of measured points into
+Catmull-Rom curves, `Art.text()` outlines glyphs from the bundled Montserrat cuts and
+sets each line to its measured width by narrowing the letterforms (`condense`) and then
+tracking, so word spaces survive even where the reference is set much narrower than
+Montserrat, and the shapes are painted with user-space gradients. The SVG has named
+layers for stock, grid, ribbons, disc, wordmark, identity, and panel.
+
+Geometry and type sizes come from measurements of the reference rather than from eye:
+landmarks were scanned in millimetres (text bounding boxes, the disc edge, where the
+ribbons cross the trim, the panel and foot curves) and the disc is a least-squares
+circle through its scanned edge. To check a rebuild against a reference, run
+`python scripts/compare_cover.py REFERENCE.png` for a side-by-side sheet and a 50/50
+overlay in `/tmp`.
+
+---
+
 ## 1. The Print & Publishing Approach (Python + ReportLab / WeasyPrint)
 
 If your goal is traditional commercial flyers, posters, and banners with complex
