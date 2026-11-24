@@ -29,7 +29,9 @@ INK = '#262626'               # near-black used for the business name
 GREEN = '#8fc64a'              # lime used for DESIGN, NAME and the year
 WHITE = '#ffffff'
 NAVY = '#1c2c3b'               # flat navy of the disc
-CHECKER = '#bcbcbc'            # grey cells of the transparency grid
+CHECKER = '#bebebe'            # grey cells of the transparency grid (190 in the reference raster)
+CHECKER_LIGHT = '#f7f7f7'       # the reference's 'white' cells are a faint grey (247)
+CHECKER_SOFT = .5               # mm; the reference grid is a slightly blurred raster, not crisp vector
 
 FONTS = {'regular': 'montserrat-latin-400-regular',
          'medium': 'montserrat-latin-500-medium',
@@ -379,17 +381,19 @@ def checker(a):
     a.defs.append(
         f'<pattern id="p-grid" patternUnits="userSpaceOnUse" x="{n(mm(2.49 - cw))}" y="{n(mm(2.9))}" '
         f'width="{n(mm(2 * cw))}" height="{n(mm(2 * ch))}">'
-        f'<rect width="{n(mm(2 * cw))}" height="{n(mm(2 * ch))}" fill="#ffffff"/>'
+        f'<rect width="{n(mm(2 * cw))}" height="{n(mm(2 * ch))}" fill="{CHECKER_LIGHT}"/>'
         f'<rect width="{n(mm(cw))}" height="{n(mm(ch))}" fill="{CHECKER}"/>'
         f'<rect x="{n(mm(cw))}" y="{n(mm(ch))}" width="{n(mm(cw))}" height="{n(mm(ch))}" fill="{CHECKER}"/>'
         '</pattern>')
-    a.path(path_mm(SHAPES['grid']), fill='url(#p-grid)')
+    a.defs.append(f'<filter id="f-grid" x="-5%" y="-5%" width="110%" height="110%">'
+                  f'<feGaussianBlur stdDeviation="{n(mm(CHECKER_SOFT))}"/></filter>')
+    a.path(path_mm(SHAPES['grid']), fill='url(#p-grid)', filter='url(#f-grid)')
 
 
 def ribbons(a):
     """Three tapering ribbons, each with its own gradient from lime to deep green."""
-    swoosh = a.gradient('g-swoosh', [(0, '#8cc642'), (.22, '#7db247'), (.43, '#689b4c'),
-                                     (.62, '#558452'), (1, '#4a7754')],
+    swoosh = a.gradient('g-swoosh', [(0, '#8cc642'), (.2, '#7db247'), (.42, '#649a4b'),
+                                     (.62, '#507f51'), (.8, '#3f7352'), (1, '#326855')],
                         mm(28), mm(2), mm(108), mm(44))
     left = a.gradient('g-left', [(0, '#8dc541'), (.37, '#86c23c'), (.68, '#5f8959'),
                                  (.79, '#4e7b55'), (.9, '#406f56'), (1, '#3f6b57')],
