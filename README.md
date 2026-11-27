@@ -755,3 +755,1357 @@ This platform must aim to reproduce that level of design thinking through a comb
 > *Don't just imitate templates. Build original compositions.*
 >
 > *Don't just make things look attractive. Make them look intentionally designed.*
+
+---
+
+# Production-Grade AI Graphic Design Architecture
+
+> **A Professional Generative Design System for Creating Illustrator-Level Digital and Print Graphics Through Code.**
+
+## 1. Architectural Mission
+
+The objective is to develop a production-grade graphic design engine that can create sophisticated, original, visually compelling, and fully editable graphic designs through programmatic graphics generation.
+
+The platform must not behave like a basic template generator.
+
+It must follow a professional graphic design production pipeline inspired by the workflows of experienced graphic designers, art directors, editorial designers, branding specialists, and advertising agencies.
+
+The system should be capable of creating:
+
+- Professional posters
+- Advertising banners
+- Promotional flyers
+- Corporate brochures
+- Business cards
+- Social media graphics
+- Magazine covers
+- Editorial layouts
+- Product advertisements
+- Event graphics
+- Educational materials
+- Infographics
+- Brand identity materials
+- Print-ready marketing materials
+
+### Primary Engineering Principle
+
+**AI decides WHAT to design and WHY. The Design Engine determines HOW to construct it. The Rendering Engine determines HOW it looks. The Quality Engine determines WHETHER it is good enough.**
+
+The final output must be a structured, editable design document, not simply a flattened AI-generated image.
+
+---
+
+# 2. Overall System Architecture
+
+Implement the following architecture as the foundation of the application.
+
+```text
+USER INPUT
+    |
+    v
+BRIEF INTERPRETATION ENGINE
+    |
+    v
+CREATIVE ART DIRECTION ENGINE
+    |
+    v
+DESIGN CONCEPT GENERATION
+    |
+    v
+DESIGN PLANNING ENGINE
+    |
+    +------------------------------+
+    |                              |
+    v                              v
+LAYOUT & GRID ENGINE          STYLE SYSTEM
+    |                              |
+    v                              v
+TYPOGRAPHY ENGINE             COLOR ENGINE
+    |                              |
+    +---------------+--------------+
+                    |
+                    v
+             ASSET GENERATION
+                    |
+          +---------+---------+
+          |                   |
+          v                   v
+     VECTOR ENGINE       IMAGE ENGINE
+          |                   |
+          +---------+---------+
+                    |
+                    v
+             SCENE BUILDER
+                    |
+                    v
+             DESIGN RENDERER
+                    |
+                    v
+             DESIGN CRITIQUE
+                    |
+                    v
+              QA VALIDATION
+                    |
+              +-----+------+
+              |            |
+              v            v
+           PASSED        FAILED
+              |            |
+              v            v
+        FINAL EXPORT    REVISION ENGINE
+              |            |
+              v            +----> RE-RENDER
+       EDITABLE OUTPUT
+```
+
+All modules must communicate through a common structured design document.
+
+Do not allow the AI to bypass the design architecture and directly produce arbitrary final markup.
+
+---
+
+# 3. Core Architectural Layers
+
+## Layer 1: Brief Interpretation Engine
+
+**Purpose:** Convert the user's request into a structured design brief.
+
+The system must understand the actual purpose of the requested design before creating anything.
+
+Extract:
+
+- Design category
+- Design purpose
+- Target audience
+- Main headline
+- Supporting text
+- Important information
+- Call to action
+- Brand identity
+- Preferred visual direction
+- Required dimensions
+- Output format
+- Language
+- Image requirements
+- Print or digital requirements
+
+### Example Input
+
+```text
+Create a professional admission poster
+for an academic coaching center.
+
+Headline: Admission Open 2027
+Subheading: Build Your Future With Us
+Audience: Students and Parents
+Language: Bengali and English
+Size: A4 Portrait
+Style: Modern, Premium, Educational
+```
+
+### Structured Brief
+
+```json
+{
+  "category": "educational-poster",
+  "purpose": "admission-marketing",
+  "audience": ["students", "parents"],
+  "language": ["bn", "en"],
+  "format": {
+    "width": 210,
+    "height": 297,
+    "unit": "mm",
+    "orientation": "portrait"
+  },
+  "content": {
+    "headline": "Admission Open 2027",
+    "subheading": "Build Your Future With Us"
+  },
+  "creative_preferences": {
+    "style": "modern-premium",
+    "visual_tone": "professional",
+    "complexity": "high"
+  },
+  "output": {
+    "editable": true,
+    "print_ready": true
+  }
+}
+```
+
+Never invent important user-provided information. If content is missing, make reasonable design assumptions without fabricating facts.
+
+## Layer 2: Creative Art Direction Engine
+
+**Purpose:** Think like a professional art director before generating graphics.
+
+This is one of the most important components of the entire system.
+
+The engine must establish a coherent visual concept before layout construction.
+
+### Art Direction Workflow
+
+1. Understand the communication objective.
+2. Identify the target audience.
+3. Determine the visual personality.
+4. Select a suitable creative direction.
+5. Establish a visual metaphor or central idea.
+6. Determine the dominant visual element.
+7. Select typography characteristics.
+8. Define the color strategy.
+9. Decide the composition style.
+10. Define the overall artistic direction.
+
+### Required Creative Directions
+
+Support multiple independent art directions:
+
+| Direction | Characteristics |
+|---|---|
+| Swiss International | Grid, typography, precision |
+| Editorial | Magazine-inspired composition |
+| Minimalist | Restraint, whitespace, clarity |
+| Brutalist | Strong contrast, raw typography |
+| Luxury | Elegant typography, premium restraint |
+| Bauhaus | Geometric forms, primary shapes |
+| Art Deco | Symmetry, ornamental geometry |
+| Experimental | Unconventional visual arrangements |
+| Corporate | Structured, trustworthy, refined |
+| Contemporary Advertising | Bold messaging, striking visuals |
+| Retro Futurism | Nostalgia, futuristic aesthetics |
+| Modern Geometric | Abstract forms and dynamic geometry |
+
+Do not randomly mix unrelated visual styles.
+
+A design must have one dominant creative direction and a consistent visual language.
+
+### Art Direction Output
+
+```json
+{
+  "concept": "The Future Starts Here",
+  "art_direction": "modern-educational-editorial",
+  "visual_metaphor": "knowledge-and-growth",
+  "composition": "asymmetric-editorial",
+  "dominant_element": "large-expressive-headline",
+  "visual_tone": "confident-and-inspiring",
+  "design_complexity": "high",
+  "typography_direction": "bold-sans-serif",
+  "color_direction": "deep-blue-and-warm-accent",
+  "negative_space": "generous"
+}
+```
+
+## Layer 3: Design Concept Generation Engine
+
+Generate multiple genuinely different design concepts before committing to one.
+
+A concept must not merely change the background color or font.
+
+Each concept should explore a different combination of:
+
+- Composition
+- Headline placement
+- Image treatment
+- Visual hierarchy
+- Typography
+- Shape language
+- Color relationships
+- Negative space
+- Decorative elements
+
+### Example Concept Variations
+
+**Concept A — Editorial Authority**
+
+- Large expressive typography
+- Asymmetric grid
+- Minimal decorative elements
+- Strong typographic hierarchy
+
+**Concept B — Dynamic Advertising**
+
+- Large central visual
+- Diagonal composition
+- Layered graphic elements
+- Bold contrasting colors
+
+**Concept C — Premium Minimalism**
+
+- Generous negative space
+- Restrained color palette
+- Elegant typography
+- Refined geometric details
+
+**Concept D — Experimental Geometry**
+
+- Abstract vector compositions
+- Unconventional alignment
+- Overlapping forms
+- Dynamic visual rhythm
+
+Each concept should have a complete design plan.
+
+The user should be able to choose a concept before the system generates the final design.
+
+---
+
+# 4. Design Intelligence Engines
+
+## 4.1 Composition Engine
+
+The composition engine determines the placement and relationships of all design elements.
+
+It must understand:
+
+- Visual hierarchy
+- Visual balance
+- Symmetry and asymmetry
+- Contrast
+- Alignment
+- Proximity
+- Repetition
+- Negative space
+- Visual rhythm
+- Focal points
+- Reading direction
+- Gestalt principles
+
+### Composition Strategies
+
+Implement:
+
+- Rule of thirds
+- Golden ratio-inspired layouts
+- Modular grid
+- Column grid
+- Baseline grid
+- Asymmetric composition
+- Radial composition
+- Diagonal composition
+- Central composition
+- Layered composition
+- Split composition
+- Freeform composition
+
+These are creative tools, not rigid mathematical rules.
+
+The engine must select a composition based on the design's communication purpose.
+
+### Layout Constraint System
+
+Each element should have:
+
+- Position
+- Width
+- Height
+- Minimum size
+- Maximum size
+- Alignment
+- Priority
+- Parent relationship
+- Collision constraints
+- Safe-area constraints
+
+Use a constraint solver or layout optimization strategy where necessary.
+
+The engine must prevent:
+
+- Accidental overlaps
+- Text clipping
+- Unbalanced margins
+- Unreadable text
+- Unintended element collisions
+- Inconsistent spacing
+
+Intentional overlaps and cropping are allowed when they serve the creative composition.
+
+## 4.2 Visual Hierarchy Engine
+
+Every composition must establish a clear order of attention.
+
+Define hierarchy levels:
+
+```text
+LEVEL 1: Primary focal point
+LEVEL 2: Main headline
+LEVEL 3: Secondary headline
+LEVEL 4: Supporting information
+LEVEL 5: Additional information
+LEVEL 6: Decorative details
+```
+
+The system must not make every element equally prominent.
+
+Important content should receive stronger visual emphasis through appropriate combinations of:
+
+- Scale
+- Weight
+- Position
+- Contrast
+- Color
+- Spacing
+- Isolation
+
+The hierarchy should also remain understandable when the design is viewed at a smaller size.
+
+## 4.3 Typography Engine
+
+Implement a dedicated professional typography engine.
+
+Support:
+
+- Font family selection
+- Font pairing
+- Font weights
+- Variable fonts
+- Font size
+- Line height
+- Letter spacing
+- Paragraph spacing
+- Text alignment
+- Text wrapping
+- Text on paths
+- Curved text
+- Text outlines
+- Text clipping
+- Text masks
+- Text transformations
+- OpenType features
+- Multilingual typography
+
+### Typography Pairing Rules
+
+The engine should consider:
+
+- Typeface personality
+- Contrast between typefaces
+- Readability
+- Language support
+- Weight availability
+- Intended communication style
+
+Avoid using too many unrelated typefaces in one composition.
+
+### Font Library
+
+Support professional multilingual font families.
+
+English:
+- Inter
+- Manrope
+- Montserrat
+- Poppins
+- Lato
+- Roboto
+- Playfair Display
+- DM Sans
+- Space Grotesk
+- Merriweather
+
+Bengali:
+- Noto Sans Bengali
+- Noto Serif Bengali
+- Hind Siliguri
+- Baloo Da 2
+- Atma
+- Tiro Bangla
+
+Arabic:
+- Noto Sans Arabic
+- Noto Serif Arabic
+- Cairo
+- Tajawal
+- Amiri
+- Almarai
+
+### Important Requirements
+
+- Proper Unicode rendering.
+- Correct Bengali conjunct formation.
+- Correct Arabic shaping.
+- RTL text direction.
+- Font fallback.
+- Accurate text measurement.
+- No unexpected font substitution.
+- Consistent browser and export rendering.
+
+Typography must be measured before final element positioning.
+
+## 4.4 Color Intelligence Engine
+
+Build a professional color system.
+
+Support:
+
+- Monochromatic palettes
+- Analogous palettes
+- Complementary palettes
+- Split-complementary palettes
+- Triadic palettes
+- Tetradic palettes
+- Neutral palettes
+- Warm and cool palettes
+- Brand-based palettes
+- Editorial palettes
+
+The engine must consider:
+
+- Background and foreground contrast
+- Text readability
+- Accent color distribution
+- Visual temperature
+- Saturation balance
+- Color relationships
+- Brand consistency
+
+Support:
+
+- HEX
+- RGB
+- HSL
+- OKLCH
+- CMYK-aware print conversion
+
+Use color accessibility checks where appropriate.
+
+Do not rely on arbitrary random color combinations.
+
+## 4.5 Grid and Spacing Engine
+
+Implement a consistent spacing system.
+
+Use configurable spacing tokens rather than arbitrary values everywhere.
+
+Example:
+
+```json
+{
+  "spacing": {
+    "xs": 4,
+    "sm": 8,
+    "md": 16,
+    "lg": 24,
+    "xl": 32,
+    "2xl": 48,
+    "3xl": 64
+  },
+  "grid": {
+    "columns": 12,
+    "gutter": 16,
+    "outerMargin": 32
+  }
+}
+```
+
+The system must adapt the spacing scale according to the canvas dimensions.
+
+These values are starting tokens, not mandatory spacing for every design.
+
+---
+
+# 5. Programmatic Graphics Engine
+
+This layer converts the creative plan into actual visual objects.
+
+## 5.1 Use a Structured Vector-Based Design Document
+
+Use SVG as a primary rendering and export format, combined with a structured internal scene graph.
+
+Do not treat HTML elements as the entire graphics architecture.
+
+Every design must be represented as a collection of independent objects.
+
+### Supported Object Types
+
+```text
+TEXT
+RECTANGLE
+CIRCLE
+ELLIPSE
+POLYGON
+PATH
+IMAGE
+SVG
+GROUP
+FRAME
+LINE
+GRADIENT
+PATTERN
+MASK
+CLIP_PATH
+DECORATION
+```
+
+### Design Object Structure
+
+```typescript
+interface DesignElement {
+  id: string;
+  type: string;
+  name: string;
+
+  transform: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    rotation: number;
+    scaleX: number;
+    scaleY: number;
+  };
+
+  style: {
+    fill?: string;
+    stroke?: string;
+    strokeWidth?: number;
+    opacity?: number;
+    blendMode?: string;
+  };
+
+  effects?: DesignEffect[];
+
+  visible: boolean;
+  locked: boolean;
+  zIndex: number;
+
+  children?: DesignElement[];
+}
+```
+
+Extend the object model with type-specific properties.
+
+For example, text elements need typography properties, image elements need image references and crop settings, and paths need editable path data.
+
+## 5.2 SVG Graphics Engine
+
+SVG should be the primary format for scalable vector artwork.
+
+Implement:
+
+- Custom path generation
+- Bézier curves
+- Clipping paths
+- Masks
+- Gradients
+- Patterns
+- Filters
+- Strokes
+- Fill rules
+- Compound paths
+- Transformations
+- Grouping
+- Nested groups
+- SVG symbols
+- Reusable definitions
+
+Avoid unnecessary rasterization of vector elements.
+
+## 5.3 Advanced Shape and Path Engine
+
+Support professional shape creation.
+
+Required capabilities:
+
+- Pen-tool path creation
+- Node editing
+- Anchor points
+- Bézier handles
+- Path joining
+- Path splitting
+- Boolean union
+- Boolean subtraction
+- Intersection
+- Exclusion
+- Offset paths
+- Compound shapes
+- Freeform drawing
+
+Use a reliable geometry library for complex path operations rather than implementing every mathematical operation from scratch.
+
+## 5.4 Effects and Appearance Engine
+
+Implement a reusable effects pipeline.
+
+```text
+OBJECT
+  |
+  v
+BASE APPEARANCE
+  |
+  v
+FILL AND STROKE
+  |
+  v
+BLEND MODES
+  |
+  v
+SHADOWS AND GLOWS
+  |
+  v
+FILTERS AND TEXTURES
+  |
+  v
+FINAL COMPOSITING
+```
+
+Support:
+
+- Linear gradients
+- Radial gradients
+- Conic gradients
+- Multiple gradient stops
+- Transparency
+- Drop shadows
+- Inner shadows
+- Outer glows
+- Gaussian blur
+- Background blur
+- Noise
+- Grain
+- Halftone
+- Texture overlays
+- Duotone
+- Blend modes
+- Masks
+- Clipping
+
+Effects must be non-destructive whenever possible.
+
+## 5.5 Image and Illustration Engine
+
+Images and illustrations should be integrated as separate assets.
+
+Support:
+
+- Uploaded images
+- Stock image integrations
+- AI-generated images
+- AI-generated illustrations
+- SVG illustrations
+- Icon libraries
+- Custom textures
+- Background images
+
+Provide:
+
+- Crop
+- Fit
+- Fill
+- Masking
+- Clipping
+- Image filters
+- Image adjustments
+- Opacity
+- Positioning
+- Scaling
+- Image overlays
+
+Important: Do not use an AI-generated flattened poster as a substitute for the actual editable composition.
+
+Generate visual assets independently and integrate them into the structured design document.
+
+---
+
+# 6. AI Design Orchestration Engine
+
+The AI should coordinate specialized design tasks instead of producing an entire design through one uncontrolled generation step.
+
+### Recommended Responsibilities
+
+```text
+DESIGN ORCHESTRATOR
+       |
+       +-- Brief Analyzer
+       |
+       +-- Art Director
+       |
+       +-- Concept Generator
+       |
+       +-- Layout Planner
+       |
+       +-- Typography Planner
+       |
+       +-- Color Planner
+       |
+       +-- Asset Planner
+       |
+       +-- Scene Builder
+       |
+       +-- Design Critic
+       |
+       +-- Revision Planner
+```
+
+These can be implemented as separate modules, AI calls, or stages within one orchestrated workflow. Separate AI agents are not mandatory.
+
+### AI Output Rules
+
+The AI must return structured, schema-valid design instructions.
+
+It must not:
+
+- Invent unsupported rendering properties.
+- Generate arbitrary invalid SVG.
+- Use undefined fonts.
+- Reference nonexistent assets.
+- Ignore canvas dimensions.
+- Create elements outside the canvas accidentally.
+- Flatten the complete design into an image.
+- Ignore the user's actual content.
+- Use random decorative elements without a purpose.
+
+All AI-generated design instructions must pass schema validation before entering the rendering engine.
+
+---
+
+# 7. Design Quality Assurance Engine
+
+A professional design system must inspect its own output.
+
+Do not consider a design complete merely because it renders successfully.
+
+Implement a multi-stage quality control system.
+
+## 7.1 Structural Validation
+
+Check:
+
+- Valid design document
+- Valid object types
+- Valid element references
+- Valid asset references
+- Valid font references
+- Valid transforms
+- Valid dimensions
+- Valid SVG structure
+- Valid export configuration
+
+## 7.2 Layout Validation
+
+Check:
+
+- Accidental overlaps
+- Text clipping
+- Element overflow
+- Incorrect alignment
+- Inconsistent margins
+- Unbalanced spacing
+- Missing content
+- Excessive density
+
+Use geometry-based validation where possible.
+
+Do not automatically reject deliberate layering or overlapping artwork.
+
+## 7.3 Typography Validation
+
+Check:
+
+- Text readability
+- Font availability
+- Line breaks
+- Font sizes
+- Line spacing
+- Text overflow
+- Language rendering
+- Contrast
+- Typographic hierarchy
+
+## 7.4 Visual Quality Evaluation
+
+Use rendered previews to inspect:
+
+- Composition
+- Visual hierarchy
+- Color harmony
+- Contrast
+- Balance
+- Negative space
+- Visual focus
+- Overall aesthetic consistency
+- Professional finish
+
+Combine deterministic checks with AI-based visual critique.
+
+AI visual critique should be advisory; hard technical requirements must be enforced by deterministic validation.
+
+## 7.5 Revision Engine
+
+When quality issues are detected:
+
+1. Identify the problem.
+2. Determine its severity.
+3. Identify the affected objects.
+4. Generate a targeted correction.
+5. Update the design document.
+6. Re-render.
+7. Re-evaluate.
+
+Never rebuild the entire design unnecessarily when a local correction is sufficient.
+
+### Revision Limits
+
+Use a configurable revision budget to prevent endless AI loops.
+
+A reasonable initial target is three automated revision rounds, followed by user review if the design still fails its quality requirements.
+
+---
+
+# 8. Production Rendering Architecture
+
+Separate the editor, renderer, and export system.
+
+```text
+STRUCTURED DESIGN DOCUMENT
+          |
+          v
+      SCENE GRAPH
+          |
+          v
+    RENDERING PIPELINE
+          |
+     +----+----+
+     |         |
+     v         v
+ SVG RENDER  CANVAS RENDER
+     |         |
+     +----+----+
+          |
+          v
+    PREVIEW OUTPUT
+          |
+          v
+     EXPORT ENGINE
+          |
+    +-----+-----+
+    |     |     |
+    v     v     v
+   PNG   SVG   PDF
+```
+
+### Rendering Requirements
+
+- Accurate object positioning
+- Consistent scaling
+- Proper font rendering
+- Correct stacking order
+- High-resolution output
+- Predictable clipping
+- Correct transparency
+- Consistent effect rendering
+
+Use the same underlying design document for editor preview and export.
+
+Where different renderers are required, implement shared rendering specifications and visual regression tests to minimize differences.
+
+### Print Production
+
+Support:
+
+- Physical document dimensions
+- DPI-aware raster export
+- Bleed
+- Safe margins
+- Crop marks
+- CMYK-aware color conversion
+- PDF embedding
+- Font handling
+- Image resolution validation
+
+Do not assume that assigning a CMYK color value automatically produces a properly color-managed print file.
+
+---
+
+# 9. Recommended Technology Architecture
+
+Use technologies according to their actual responsibilities.
+
+| Layer | Recommended Technology |
+|---|---|
+| Frontend | React + TypeScript |
+| Application Framework | Next.js or existing React setup |
+| UI Styling | Tailwind CSS |
+| Design Document | JSON + TypeScript |
+| Vector Graphics | SVG |
+| Canvas Rendering | HTML Canvas |
+| Interactive Canvas | Konva.js or Fabric.js |
+| Geometry Operations | Paper.js or dedicated geometry libraries |
+| Advanced Effects | SVG Filters / WebGL |
+| Image Processing | Canvas / WebAssembly |
+| Typography | Browser Font APIs / Fontkit |
+| State Management | Zustand |
+| Schema Validation | Zod |
+| AI Integration | Model-provider abstraction |
+| Backend | Node.js |
+| Database | PostgreSQL |
+| Asset Storage | S3-compatible storage |
+| Background Jobs | Queue-based job processing |
+| PDF Export | SVG-to-PDF or PDF rendering pipeline |
+
+### Technology Selection Rules
+
+1. Do not introduce multiple canvas libraries without a clear technical reason.
+2. Keep the structured design document independent of the rendering library.
+3. Use SVG for scalable artwork and precise vector output.
+4. Use Canvas or WebGL for rendering-intensive operations when appropriate.
+5. Keep AI providers replaceable through a common adapter.
+6. Keep the existing project stack when it already provides the necessary functionality.
+7. Avoid unnecessary dependencies and duplicated functionality.
+
+---
+
+# 10. Recommended Project Directory Structure
+
+Organize the application into independent modules.
+
+```text
+src/
+│
+├── app/
+│   ├── editor/
+│   ├── dashboard/
+│   └── templates/
+│
+├── core/
+│   ├── design-document/
+│   │   ├── schema.ts
+│   │   ├── types.ts
+│   │   └── validation.ts
+│   │
+│   ├── scene-graph/
+│   ├── rendering/
+│   ├── geometry/
+│   ├── transformations/
+│   └── history/
+│
+├── design-intelligence/
+│   ├── brief-analyzer/
+│   ├── art-direction/
+│   ├── concept-generator/
+│   ├── composition/
+│   ├── layout-planner/
+│   ├── typography/
+│   ├── color/
+│   └── design-critic/
+│
+├── ai/
+│   ├── orchestrator/
+│   ├── providers/
+│   ├── prompts/
+│   ├── structured-output/
+│   └── revision-engine/
+│
+├── graphics/
+│   ├── svg/
+│   ├── shapes/
+│   ├── paths/
+│   ├── gradients/
+│   ├── effects/
+│   ├── masks/
+│   └── patterns/
+│
+├── assets/
+│   ├── images/
+│   ├── illustrations/
+│   ├── icons/
+│   ├── textures/
+│   └── fonts/
+│
+├── editor/
+│   ├── canvas/
+│   ├── toolbar/
+│   ├── properties/
+│   ├── layers/
+│   ├── text-tools/
+│   ├── shape-tools/
+│   └── selection/
+│
+├── production/
+│   ├── export/
+│   ├── pdf/
+│   ├── print/
+│   └── color-management/
+│
+├── quality/
+│   ├── structural/
+│   ├── layout/
+│   ├── typography/
+│   ├── visual/
+│   └── regression/
+│
+└── shared/
+    ├── constants/
+    ├── utilities/
+    └── types/
+```
+
+This is a target architecture. Implement it incrementally rather than creating empty folders for every module immediately.
+
+---
+
+# 11. Mandatory AI Design Production Workflow
+
+Whenever the user requests a new design, the AI MUST follow this workflow.
+
+### STEP 01 — Understand
+
+Analyze the user's content, design category, purpose, audience, language, and output dimensions.
+
+### STEP 02 — Art Direct
+
+Determine the appropriate visual concept, creative direction, and artistic style.
+
+### STEP 03 — Plan
+
+Establish:
+
+- Layout
+- Grid
+- Hierarchy
+- Typography
+- Color palette
+- Image strategy
+- Shape language
+- Visual focal point
+
+### STEP 04 — Generate
+
+Create a structured design document containing actual editable elements.
+
+### STEP 05 — Render
+
+Render the structured document through the graphics engine.
+
+### STEP 06 — Inspect
+
+Evaluate the rendered composition for visual and technical problems.
+
+### STEP 07 — Refine
+
+Correct weaknesses through targeted revisions.
+
+### STEP 08 — Validate
+
+Run structural, layout, typography, and export validation.
+
+### STEP 09 — Deliver
+
+Provide the final editable design and requested export formats.
+
+**Never skip the planning, rendering, and quality evaluation stages simply to generate results faster.**
+
+---
+
+# 12. AI System Instructions — Mandatory Design Standards
+
+The following rules must be included in the AI design-generation system prompt.
+
+```text
+You are a senior professional graphic designer,
+creative art director, editorial designer,
+and visual communication specialist.
+
+Your task is to create professional-quality
+graphic designs using a structured programmatic
+graphics engine.
+
+You must think like an experienced human
+graphic designer, not a template generator.
+
+DESIGN RULES:
+
+1. Understand the design objective before
+   generating any visual elements.
+
+2. Establish a clear and original creative
+   direction.
+
+3. Develop a meaningful composition.
+
+4. Prioritize visual hierarchy and readability.
+
+5. Use professional typography and appropriate
+   font pairing.
+
+6. Apply deliberate color theory.
+
+7. Use negative space intelligently.
+
+8. Create visual interest through meaningful
+   shapes, illustrations, imagery, and layers.
+
+9. Avoid repetitive template-like compositions.
+
+10. Avoid unnecessary decorative elements.
+
+11. Do not make every element equally prominent.
+
+12. Respect the user's original content.
+
+13. Build all possible elements as editable
+    vector or text objects.
+
+14. Use the available graphics engine and
+    supported object schemas.
+
+15. Inspect the rendered result before delivery.
+
+16. Identify visual weaknesses and correct them.
+
+17. Ensure that the final output is suitable
+    for its intended digital or print medium.
+
+18. Do not claim professional quality merely
+    because a design renders successfully.
+
+FINAL STANDARD:
+
+The output should demonstrate the intentional
+composition, typographic sophistication,
+visual hierarchy, balance, and refinement
+expected from professional graphic design work.
+
+Every element must have a visual purpose.
+Every design decision must support the
+communication objective.
+```
+
+---
+
+# 13. Performance, Scalability and Reliability
+
+A production-grade application must remain reliable as document complexity increases.
+
+### Performance Requirements
+
+- Efficient scene graph updates.
+- Avoid unnecessary full-canvas rerendering.
+- Use object-level rendering updates.
+- Cache expensive computations.
+- Use Web Workers for suitable background tasks.
+- Use GPU acceleration when beneficial.
+- Optimize large image assets.
+- Load fonts efficiently.
+- Avoid blocking the editor during AI generation.
+- Support large documents and multiple artboards.
+
+### Reliability Requirements
+
+- Autosave.
+- Undo and redo.
+- Document recovery.
+- Version history.
+- Error boundaries.
+- Asset validation.
+- AI request timeouts.
+- Retry handling.
+- Export error reporting.
+- Schema migration.
+- Rendering consistency tests.
+
+AI generation, asset processing, and PDF production should be handled asynchronously where appropriate.
+
+---
+
+# 14. Implementation Roadmap
+
+Build the system in the following order.
+
+| Phase | Main Objective | Priority |
+|---|---|---|
+| 1 | Structured design document and scene graph | Critical |
+| 2 | SVG rendering and vector object system | Critical |
+| 3 | Typography and color engines | Critical |
+| 4 | Composition and layout engine | Critical |
+| 5 | AI art direction and planning | Critical |
+| 6 | Design generation orchestration | High |
+| 7 | Image and illustration integration | High |
+| 8 | Visual critique and revision | High |
+| 9 | Professional editing tools | High |
+| 10 | Print-ready export | High |
+| 11 | Advanced vector and image effects | Medium |
+| 12 | Performance optimization and scalability | High |
+
+Do not attempt to implement every advanced feature at once.
+
+Establish a reliable end-to-end design pipeline first, then progressively improve its creative capabilities.
+
+---
+
+# 15. Production Acceptance Criteria
+
+A feature should not be considered complete until it satisfies the relevant criteria.
+
+### Design Quality
+- [ ] Clear creative direction.
+- [ ] Distinctive composition.
+- [ ] Strong visual hierarchy.
+- [ ] Appropriate typography.
+- [ ] Balanced color palette.
+- [ ] Intentional negative space.
+- [ ] Professional visual finish.
+- [ ] No accidental visual collisions.
+
+### Technical Quality
+- [ ] Valid structured design document.
+- [ ] Editable individual elements.
+- [ ] Accurate SVG rendering.
+- [ ] Correct text shaping.
+- [ ] Reliable object transformations.
+- [ ] Consistent layering.
+- [ ] Stable rendering performance.
+
+### Production Quality
+- [ ] Correct document dimensions.
+- [ ] High-resolution export.
+- [ ] Accurate preview-to-export consistency.
+- [ ] Correct transparency.
+- [ ] Print requirements validated.
+- [ ] No missing assets or fonts.
+
+### AI Quality
+- [ ] Understands the brief.
+- [ ] Generates distinct concepts.
+- [ ] Follows the selected art direction.
+- [ ] Produces valid structured output.
+- [ ] Inspects the rendered result.
+- [ ] Performs targeted revisions.
+- [ ] Preserves original content.
+
+---
+
+# 16. Final Architectural Principle
+
+The most important architectural decision is to separate creative intelligence from graphics execution.
+
+Do not allow one AI prompt to control the entire design process without structure.
+
+Build independent but connected systems:
+
+1. **Creative Intelligence:** Determines what should be designed.
+2. **Art Direction:** Determines the visual language.
+3. **Design Planning:** Determines composition and hierarchy.
+4. **Graphics Engine:** Constructs actual vector and raster elements.
+5. **Rendering Engine:** Produces the visual result.
+6. **Quality Engine:** Evaluates and improves the result.
+7. **Production Engine:** Generates professional deliverables.
+
+The application should behave like a combination of:
+
+- A professional creative art director
+- An experienced graphic designer
+- A vector illustration engine
+- An advanced typography system
+- A professional layout engine
+- A production and prepress specialist
+
+**ULTIMATE GOAL**
+
+Build a system where the user provides an idea, and the platform transforms it into an original, professionally art-directed, technically accurate, fully editable graphic design.
+
+The standard is not merely to produce something attractive.
+
+The standard is to produce work that demonstrates professional creative judgment, sophisticated visual communication, and production-level execution.
+
+**CODE SHOULD NOT LIMIT CREATIVITY. IT SHOULD BECOME THE MEDIUM THROUGH WHICH CREATIVITY IS EXECUTED.**
