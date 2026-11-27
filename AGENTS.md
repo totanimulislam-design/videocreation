@@ -6,17 +6,17 @@ This file tells any AI coding agent (or human contributor) how to work safely an
 
 ## 1. Repository Status (as of 2026-11-27)
 
-- This repository currently contains **documentation only** — `README.md` is the full specification for "Creative Studio", a professional, code-powered graphic design platform.
+- This repository currently contains **documentation only** — `README.md` is the architecture and platform specification for "Creative Studio", a professional, code-powered graphic design platform, and `DESIGN_SYSTEM.md` defines the creative, typographic, compositional, and visual quality standards.
 - **No application source code exists yet.** There is no `package.json`, no `src/` tree, no build tooling, and no test runner. Do not assume any of these exist.
-- `DESIGN_SYSTEM.md` is referenced by the mandatory instructions below but **does not exist in this repository yet** (checked the working tree, git history, and all branches). Until it is created, `README.md` is the sole authoritative source of truth. Do not invent its contents or cite it as if it exists; if a task genuinely requires it, stop and ask the user, or create it deliberately as its own documented change.
-- The README itself describes a *target* architecture. Where the README and reality differ, reality wins and the README/AGENTS.md should be updated to reflect it.
+- `DESIGN_SYSTEM.md` and `README.md` are both authoritative in their respective domains: `DESIGN_SYSTEM.md` governs creative direction, design principles, typography, color, composition, anti-patterns, and visual critique; `README.md` governs the technical architecture, design document schema, orchestration pipeline, and implementation roadmap.
+- The README itself describes a *target* architecture. Where the README and reality differ, reality wins and `README.md`, `DESIGN_SYSTEM.md`, and `AGENTS.md` should be updated to reflect it.
 
 ---
 
 ## 2. Mandatory Instructions (read before implementing anything)
 
 1. Read `README.md` **completely** before implementing any feature. It is long (~2,100 lines) and dense — skim the Table of Contents first, then read in full.
-2. Read `DESIGN_SYSTEM.md` if and when it exists. Until then, treat the design guidance embedded in `README.md` (especially sections 3–11 and "Production-Grade AI Graphic Design Architecture") as the design system.
+2. Read `DESIGN_SYSTEM.md` **completely** before designing or implementing any creative or design-generation feature. It is the primary creative design rulebook governing art direction, composition, typography, color, shapes, critique, anti-patterns, and checklists.
 3. Understand the existing project architecture before editing. Today that means understanding the spec; once code lands, it means reading the modules you touch.
 4. Follow the established design document schema. The canonical object shape is the `DesignElement` interface in `README.md` ("5.1 Use a Structured Vector-Based Design Document"): `id`, `type`, `name`, `transform` (x, y, width, height, rotation, scaleX, scaleY), `style` (fill, stroke, strokeWidth, opacity, blendMode), optional `effects`, `visible`, `locked`, `zIndex`, optional `children`. Extend it with type-specific properties (typography for text, crop/asset refs for images, path data for paths) rather than inventing parallel structures.
 5. Reuse existing rendering and graphics systems. Do not introduce a second canvas library, a second rendering path, or a parallel object model.
@@ -24,9 +24,9 @@ This file tells any AI coding agent (or human contributor) how to work safely an
 7. Never bypass the design production pipeline (see §5 below). A design that has not passed through the pipeline stages is not done, regardless of how it looks.
 8. Preserve existing working functionality. Do not refactor, delete, or "improve" working code that is unrelated to the task.
 9. Validate every implementation (see §7 below). "It renders" is not validation.
-10. Update documentation when architecture changes. If you change the schema, the pipeline, the directory structure, or the tech stack, update `README.md` and this file in the same change.
+10. Update documentation when architecture or creative standards change. If you change the schema, the pipeline, the directory structure, the tech stack, or creative standards, update `README.md`, `DESIGN_SYSTEM.md`, and this file in the same change.
 
-For all AI-generated graphic designs, follow the complete design production workflow defined in `README.md` and (eventually) `DESIGN_SYSTEM.md`. Professional visual quality, editability, rendering accuracy, and production reliability are mandatory requirements, not stretch goals.
+For all AI-generated graphic designs, follow the complete design production workflow and creative standards defined in `README.md` and `DESIGN_SYSTEM.md`. Professional visual quality, editability, rendering accuracy, and production reliability are mandatory requirements, not stretch goals.
 
 ---
 
@@ -73,21 +73,21 @@ These come from `README.md` and must hold for all code and all generated designs
 
 ## 5. Mandatory Design Production Workflow
 
-Whenever a user requests a new design, the agent MUST follow this workflow (README §11). Do not skip steps to generate faster.
+Whenever a user requests a new design, the agent MUST follow this workflow (`README.md` §11; creative standards in `DESIGN_SYSTEM.md` §2–20). Do not skip steps to generate faster.
 
 1. **STEP 01 — Understand.** Analyze content, category, purpose, audience, language, output dimensions. Never invent important user-provided information; make reasonable assumptions only for what is missing.
-2. **STEP 02 — Art Direct.** Decide visual concept, creative direction, and style. One dominant creative direction per design — never randomly mix unrelated styles.
-3. **STEP 03 — Plan.** Establish layout, grid, hierarchy, typography, color palette, image strategy, shape language, and the focal point.
+2. **STEP 02 — Art Direct.** Decide visual concept, creative direction, and style (`DESIGN_SYSTEM.md` §4). One dominant creative direction per design — never randomly mix unrelated styles.
+3. **STEP 03 — Plan.** Establish layout, grid, hierarchy, typography, color palette, image strategy, shape language, and the focal point (`DESIGN_SYSTEM.md` §3, §5–10, §12–13).
 4. **STEP 04 — Generate.** Create the structured design document with real, editable elements (text, shapes, paths, images as positioned assets).
 5. **STEP 05 — Render.** Render the document through the graphics engine (SVG/Canvas pipeline).
-6. **STEP 06 — Inspect.** Evaluate the rendered composition for visual and technical problems.
-7. **STEP 07 — Refine.** Fix weaknesses with targeted, local revisions — do not rebuild the whole design for a local flaw.
-8. **STEP 08 — Validate.** Run structural, layout, typography, and export validation (README §7).
+6. **STEP 06 — Inspect.** Evaluate the rendered composition for visual and technical problems (`DESIGN_SYSTEM.md` §15–17).
+7. **STEP 07 — Refine.** Fix weaknesses with targeted, local revisions — do not rebuild the whole design for a local flaw (`DESIGN_SYSTEM.md` §16).
+8. **STEP 08 — Validate.** Run structural, layout, typography, and export validation (`README.md` §7, `DESIGN_SYSTEM.md` §18).
 9. **STEP 09 — Deliver.** Hand over the final editable design plus the requested export formats.
 
-### Design quality bar (from README)
+### Design quality bar (from README & DESIGN_SYSTEM)
 
-Every design must demonstrate: strong visual hierarchy, professional typography and pairing, deliberate color theory, intelligent negative space, intentional composition (avoid repetitive template-like layouts), balanced visual weight, meaningful decorative elements only, and consistent visual language. Every element must have a visual purpose; every decision must serve the communication objective.
+Every design must demonstrate: strong visual hierarchy, professional typography and pairing, deliberate color theory, intelligent negative space, intentional composition (avoid repetitive template-like layouts and `DESIGN_SYSTEM.md` §17 anti-patterns), balanced visual weight, meaningful decorative elements only, and consistent visual language. Every element must have a visual purpose; every decision must serve the communication objective.
 
 ---
 
@@ -97,7 +97,7 @@ Every design must demonstrate: strong visual hierarchy, professional typography 
 - Make the smallest change that fully satisfies the task. Preserve working functionality.
 - Do not commit generated build artifacts or large datasets to Git; follow existing ignore conventions when code exists.
 - Keep commits focused and descriptive; work lands on this branch via normal commits/PRs.
-- When the architecture changes, update `README.md`, this file, and (once it exists) `DESIGN_SYSTEM.md` in the same change — documentation drift is a defect.
+- When the architecture or creative standards change, update `README.md`, `DESIGN_SYSTEM.md`, and this file in the same change — documentation drift is a defect.
 - Ask before adding new dependencies, new frameworks, or new infrastructure. Prefer the documented stack and existing patterns.
 
 ---
@@ -109,7 +109,7 @@ Match validation rigor to the change:
 - **Documentation-only changes:** proofread for factual accuracy against the repo; verify every cross-reference, path, and claim (e.g., file existence) is true. Check markdown renders correctly.
 - **Schema/model changes:** the design document must remain serializable, validated, and renderer-independent; update `DesignElement`-derived types and validators together; add or update tests.
 - **Rendering changes:** verify preview and export consistency; check layering, transforms, typography, clipping, and transparency on representative documents.
-- **Design output changes:** run the full §5 workflow, including inspection and validation, and confirm the output against the production acceptance criteria in README §15 (design quality, technical quality, production quality, AI quality checklists).
+- **Design output changes:** run the full §5 workflow, including inspection and validation, and confirm the output against `DESIGN_SYSTEM.md` §18 and the production acceptance criteria in `README.md` §15 (design quality, technical quality, production quality, AI quality checklists).
 - **Export changes:** test the actual exported files (PDF/PNG/SVG), not just the editor preview — including dimensions, DPI, bleed, and transparency where applicable.
 
 If validation tooling does not exist yet (it doesn't, today), say so explicitly in your delivery notes and describe exactly what you did verify and what you could not.
@@ -133,18 +133,22 @@ If validation tooling does not exist yet (it doesn't, today), say so explicitly 
 
 | Topic | Where |
 |---|---|
-| Project vision, quality standards | `README.md` §1–3, §16, Final Quality Standard |
-| Design categories supported | `README.md` §2 |
+| Project vision, quality standards | `README.md` §1–3, §16; `DESIGN_SYSTEM.md` §1, §20 |
+| Creative design principles, art direction & styles | `DESIGN_SYSTEM.md` §2–4 |
+| Composition, typography, color, shapes & effects | `DESIGN_SYSTEM.md` §5–10 |
+| Category rules, density, spacing & adaptability | `DESIGN_SYSTEM.md` §11–14 |
+| Visual critique, anti-patterns & design checklist | `DESIGN_SYSTEM.md` §15–19 |
+| Design categories supported | `README.md` §2; `DESIGN_SYSTEM.md` §11 |
 | Engine capabilities (vector, type, layout, images, effects) | `README.md` §4–7 (and Architecture §3–6) |
 | Design document schema / object model | `README.md` "5.1 Use a Structured Vector-Based Design Document" |
-| Mandatory AI workflow (STEP 01–09) | `README.md` §11 |
-| AI system prompt / design rules | `README.md` §12 |
-| QA engine (structural/layout/typography/visual/revision) | `README.md` §7 |
+| Mandatory AI workflow (STEP 01–09) | `README.md` §11; `DESIGN_SYSTEM.md` §2, §16, §18–19 |
+| AI system prompt / design rules | `README.md` §12; `DESIGN_SYSTEM.md` §19 |
+| QA engine (structural/layout/typography/visual/revision) | `README.md` §7; `DESIGN_SYSTEM.md` §15–16 |
 | Rendering & production pipeline | `README.md` §8 |
 | Tech stack & selection rules | `README.md` §9, §12 (Technical Architecture) |
 | Target directory structure | `README.md` §10 |
 | Technology stack table | `README.md` §9 |
-| Acceptance criteria checklists | `README.md` §15 (Production Acceptance Criteria) |
+| Acceptance criteria checklists | `README.md` §15; `DESIGN_SYSTEM.md` §18 |
 | Development rules | `README.md` §14 |
 
-**When in doubt:** preserve the working system, follow the README, keep creative intelligence separate from graphics execution, validate before declaring done — and ask the user when the spec and the task genuinely conflict.
+**When in doubt:** preserve the working system, follow `README.md` and `DESIGN_SYSTEM.md`, keep creative intelligence separate from graphics execution, validate before declaring done — and ask the user when the spec and the task genuinely conflict.
