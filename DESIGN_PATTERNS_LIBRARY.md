@@ -7,11 +7,13 @@
 
 # 1. Core Philosophy
 
+This library is a Runtime AI Designer resource. The canonical system boundaries and shared `CompositionPlan`/`DesignDocument` types are owned by `DESIGN_ENGINE_SPEC.md`; this library defines pattern meaning and guidance only. Its examples and metadata are not claims of implemented patterns.
+
 This library is not a collection of fixed templates.
 
 It is a collection of **compositional strategies** that professional designers can interpret, combine, adapt, and transform according to the design brief.
 
-The AI must not blindly copy a pattern. It must understand:
+The Runtime AI Designer must not blindly copy a pattern. It must understand:
 
 - Why a composition works.
 - What type of message it communicates.
@@ -36,9 +38,13 @@ Every generated design must be art-directed according to its:
 - Platform
 - Cultural context
 
+## Pattern decision contract
+
+For every selected pattern, the Runtime AI Designer must be able to state five things: **meaning** (the structural idea), **appropriate use** (purpose/audience/content/output fit), **implementation** (how it maps to the canonical plan and what geometry is calculated), **common mistakes** (how the pattern can fail), and **validation** (how to inspect the result). Existing catalog labels map as follows: `Structure`/description = meaning, `Best for` = use cases, `Construction` = implementation, and the pattern checklist plus `avoidWhen`/`commonMistakes`/`validationChecks` = failure and validation guidance. Where an entry is terse or lacks one of these fields, apply this contract before using it; do not assume an unmentioned implementation or claim a pattern is available in code.
+
 ## 1.2 No Template Repetition
 
-The AI must avoid producing designs that look like slightly modified versions of previous outputs.
+The Runtime AI Designer must avoid producing designs that look like slightly modified versions of previous outputs.
 
 Changing only the background color, font, image, or decorative shape does not create a genuinely new composition.
 
@@ -59,7 +65,7 @@ Variation must include meaningful changes in:
 
 # 2. Pattern Selection Engine
 
-Before selecting a composition pattern, the AI must interpret the design brief.
+Before selecting a composition pattern, the Runtime AI Designer must interpret the design brief.
 
 ## 2.1 Required Brief Analysis
 
@@ -97,7 +103,7 @@ Use the following decision process:
 
 ## 2.3 Pattern Selection Requirements
 
-The AI must:
+The Runtime AI Designer must:
 
 - Select one primary composition pattern.
 - Optionally select one or two supporting patterns.
@@ -1770,7 +1776,7 @@ A design must remain relevant to the brief, audience, brand, and communication o
 
 # 19. Pattern Library Data Structure
 
-Store patterns as structured data so the AI and composition engine can use them programmatically.
+Store patterns as structured data so the Runtime AI Designer and Design Engine can use them programmatically.
 
 Example TypeScript interface:
 
@@ -1808,9 +1814,15 @@ interface DesignPattern {
 
   recommendedElements: string[];
 
+  implementationNotes: string[];
+
   avoidWhen: string[];
 
   adaptationRules: string[];
+
+  commonMistakes: string[];
+
+  validationChecks: string[];
 
   complexity: "low" | "medium" | "high";
 }
@@ -1829,9 +1841,10 @@ Every implemented pattern should include:
 - Focal point strategy
 - Reading direction
 - Visual characteristics
-- Recommended elements
-- Limitations
+- Recommended elements and implementation notes (how the strategy maps to the canonical `CompositionPlan` in `DESIGN_ENGINE_SPEC.md`)
+- Limitations and common mistakes
 - Adaptation rules
+- Validation checks (reading order, focus, fit and intended-use criteria)
 - Complexity level
 
 ## 19.2 Pattern Metadata Must Not Become a Template
@@ -1852,39 +1865,7 @@ The pattern library must work with the platform's vector scene graph.
 
 For example:
 
-```ts
-interface CompositionPlan {
-  canvas: {
-    width: number;
-    height: number;
-  };
-
-  pattern: {
-    primary: string;
-    supporting: string[];
-  };
-
-  hierarchy: {
-    primary: string[];
-    secondary: string[];
-    tertiary: string[];
-  };
-
-  zones: Array<{
-    id: string;
-    purpose: string;
-    priority: number;
-    preferredPosition: string;
-    preferredSize: string;
-  }>;
-
-  constraints: {
-    safeMargin: number;
-    minContrast: number;
-    preserveReadability: boolean;
-  };
-}
-```
+Use only the canonical `CompositionPlan` type in `DESIGN_ENGINE_SPEC.md` §6.1; do not create a second plan schema in this library. Map a selected pattern's ID to `primaryPattern`, supporting IDs to `supportingPatterns`, intended content slots to the plan's `hierarchy`, and its structural regions to `zones` with canvas-unit bounds. Map reading direction and grid/overlap requirements to their corresponding canonical fields; safe margins belong to the document's `CanvasConfig.safeArea`, not a second pattern-specific value. The Layout Engine derives actual element geometry from this plan, content measurements, and canvas; pattern metadata must not supply a fixed output coordinate arrangement.
 
 The composition engine should translate this plan into:
 
@@ -1987,47 +1968,11 @@ Where print output is required, support:
 
 # 22. AI Design Generation Workflow
 
-The AI must follow this workflow when creating a new design.
-
-### Phase 1 — Understand
-
-Analyze the brief, audience, content, and purpose.
-
-### Phase 2 — Explore
-
-Identify suitable art directions and possible composition families.
-
-### Phase 3 — Select
-
-Choose one primary pattern and optional supporting patterns.
-
-### Phase 4 — Plan
-
-Define visual hierarchy, grid, focal point, content zones, and reading flow.
-
-### Phase 5 — Construct
-
-Build the composition from editable vector and image elements.
-
-### Phase 6 — Refine
-
-Adjust typography, color, spacing, proportions, image treatment, and depth.
-
-### Phase 7 — Critique
-
-Evaluate the design against the quality metrics and identify weak areas.
-
-### Phase 8 — Improve
-
-Make meaningful revisions instead of adding random decoration.
-
-### Phase 9 — Validate
-
-Check visual quality, readability, technical integrity, and output requirements.
+This library participates only in the **Composition Strategy** stage of the canonical workflow in `DESIGN_ENGINE_SPEC.md` §21. The full sequence is: Brief Analysis → Communication Objective → Creative Direction → Composition Strategy → Visual Hierarchy → Typography → Color → Asset Selection → Construction → Rendering → Quality Evaluation → Revision. Pattern selection must use the earlier objective/direction and return a pattern ID, reading flow, zones, and adaptation constraints for the shared `CompositionPlan`; it must not reorder the workflow or directly construct final geometry. After quality findings, a revision can revisit pattern choice only when the evidence identifies a structural weakness.
 
 ---
 
-# 23. Anti-Patterns: What the AI Must Avoid
+# 23. Anti-Patterns: What the Runtime AI Designer Must Avoid
 
 The following are common signs of weak or generic design.
 
@@ -2105,9 +2050,9 @@ Before generating a design, verify:
 
 ---
 
-# 25. Mandatory Instructions for AI Agents
+# 25. Runtime AI Designer Instructions
 
-When working on this platform, follow these rules:
+When making a creative plan, the Runtime AI Designer follows these rules. Coding-agent behavior is defined only in `AGENTS.md`.
 
 1. Treat this document as a professional composition reference, not a fixed template collection.
 2. Select patterns according to the design brief.

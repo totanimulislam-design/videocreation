@@ -8,6 +8,42 @@
 
 ---
 
+## Documentation status and ownership
+
+This file specifies a **proposed target architecture**, not features verified as implemented. The checked-out repository currently has no source tree or tests. `AGENTS.md` is authoritative only for coding-agent behavior; the Runtime AI Designer follows `DESIGN_SYSTEM.md`, with reusable compositions from `DESIGN_PATTERNS_LIBRARY.md` and acceptance from `DESIGN_QUALITY_METRICS.md`. When code is introduced, implementation and tests establish shipped behavior.
+
+## System responsibilities
+
+| Role/system | Owns | Must not |
+|---|---|---|
+| Coding Agent | Repository inspection, code changes, tests, documentation accuracy and delivery report. | Perform runtime design generation or claim a proposed feature exists. |
+| Runtime AI Designer | Brief interpretation, communication intent, creative direction and structured design/revision proposals. | Emit executable code/arbitrary markup, bypass schemas, or certify technical properties it did not inspect. |
+| Design Engine | Validate the plan, calculate constraints/geometry and construct the editable design document/scene graph deterministically. | Make unsupported factual assumptions or conflate creative intent with rendering. |
+| Renderer | Render a validated document to preview/output using consistent document geometry and assets. | Decide that a design is good or approved. |
+| Quality Engine | Run objective checks, collect rendered evidence, score/critique, identify failures, and plan bounded revisions. | Let a weighted score override a hard failure or claim visual inspection without rendered evidence. |
+| Human Review | Resolve ambiguous/subjective or low-confidence results; review failed cases and production-sensitive delivery. | Be replaced by an unverified score for decisions requiring human approval. |
+
+## Canonical Runtime Creative Workflow
+
+The Runtime AI Designer and orchestration must preserve this order and pass structured outputs between stages:
+
+**Brief Analysis → Communication Objective → Creative Direction → Composition Strategy → Visual Hierarchy → Typography → Color → Asset Selection → Construction → Rendering → Quality Evaluation → Revision.**
+
+1. **Brief Analysis:** extract exact required content, audience, language/script, medium, dimensions and constraints; label unknowns/assumptions.
+2. **Communication Objective:** state the primary message and intended audience response; preserve factual content exactly.
+3. **Creative Direction:** select a coherent style/mood and explain why it serves the objective.
+4. **Composition Strategy:** select one primary compositional pattern and any purposeful supporting strategy; define reading flow and zones.
+5. **Visual Hierarchy:** rank required content and choose focal point/relationships before styling details.
+6. **Typography:** choose script-capable fonts and roles; shape/measure text and plan line breaks before final geometry.
+7. **Color:** assign functional palette roles, then test contrast for output context.
+8. **Asset Selection:** choose or request only suitable, licensed/available assets; define crop, treatment, and fallback.
+9. **Construction:** validate the plan and build editable objects; deterministic geometry belongs to the Design Engine.
+10. **Rendering:** render the current document and preserve preview/output parity.
+11. **Quality Evaluation:** run hard checks and inspect rendered visual evidence using `DESIGN_QUALITY_METRICS.md`.
+12. **Revision:** fix prioritized issues with the smallest effective edits, then repeat construction, rendering and evaluation. Stop at acceptance or the configured revision limit and escalate to Human Review.
+
+These are ordered decision gates, not a requirement for separate AI calls or services. Deterministic engine subroutines can be composed internally, but must not contradict or skip the stages. Use the shared types in §3 as the contract between stages.
+
 # 1. Design Engine Philosophy
 
 The Design Engine is the core visual construction system of the platform.
@@ -24,21 +60,19 @@ It must understand the relationships between design elements and construct compo
 
 The system must separate creative reasoning from deterministic construction.
 
-| System | Responsibility |
-|---|---|
-| AI Creative Intelligence | Understand the brief and develop concepts |
-| Art Direction Engine | Define visual direction and style |
-| Composition Planner | Create a structured composition plan |
-| Layout Engine | Calculate element positions and dimensions |
-| Typography Engine | Measure and arrange text |
-| Vector Engine | Construct shapes, paths, and graphics |
-| Image Engine | Process, crop, mask, and position images |
-| Scene Graph | Maintain editable design objects |
-| Rendering Engine | Render the final visual composition |
-| Collision Engine | Detect overlapping and layout problems |
-| Design Critic | Evaluate visual quality |
-| Revision Engine | Improve weak design areas |
-| Export Engine | Produce final output files |
+| Component | Owning system | Responsibility |
+|---|---|---|
+| Brief/art-direction/pattern planner | Runtime AI Designer | Interpret the request and propose a structured creative plan. |
+| Composition planner | Runtime AI Designer, validated by Design Engine | Define hierarchy, zones, reading flow and constraints. |
+| Layout/grid/spacing engine | Design Engine | Calculate element positions and dimensions. |
+| Typography services | Design Engine | Shape/measure text and report support/fallback constraints. |
+| Vector/image construction | Design Engine | Construct editable geometry and prepare referenced assets. |
+| Scene graph | Design Engine | Maintain editable design objects and relationships. |
+| Renderer | Renderer system | Draw the validated document consistently. |
+| Collision/overflow validators | Quality Engine | Detect geometric/content failures and report evidence. |
+| Visual critic | Quality Engine; may use Runtime AI Designer as an adapter | Inspect rendered evidence and propose specific critique. |
+| Revision planner | Quality Engine + Runtime AI Designer | Prioritize findings and propose bounded, targeted changes. |
+| Export service | Post-acceptance delivery system | Produce only supported, validated output formats. |
 
 ## 1.2 Non-Negotiable Requirements
 
@@ -65,27 +99,22 @@ The design-generation pipeline should follow this architecture:
 
 ```mermaid
 flowchart TD
-    A[User Design Brief] --> B[Brief Interpretation Engine]
-    B --> C[Creative Direction Engine]
-    C --> D[Composition Pattern Selector]
-    D --> E[Composition Planning Engine]
-    E --> F[Layout & Grid Engine]
-    E --> G[Typography Engine]
-    E --> H[Color Engine]
-    E --> I[Image & Asset Engine]
-    F --> J[Design Scene Builder]
-    G --> J
-    H --> J
-    I --> J
-    J --> K[Editable Scene Graph]
-    K --> L[Collision Detection]
-    L --> M[Rendering Engine]
-    M --> N[Visual Quality Evaluation]
-    N --> O{Quality Passed?}
-    O -->|No| P[Revision Engine]
-    P --> J
-    O -->|Yes| Q[Final Design Document]
-    Q --> R[Export Engine]
+    A[User Brief] --> B[Runtime AI Designer: brief, objective, direction]
+    B --> C[Composition Strategy]
+    C --> D[Hierarchy]
+    D --> E[Typography]
+    E --> F[Color]
+    F --> G[Asset Selection]
+    G --> H[Schema Validation]
+    H --> I[Design Engine: geometry and editable document]
+    I --> J[Renderer: visual preview]
+    J --> K[Quality Engine: objective checks and visual evidence]
+    K --> L{Hard gates pass and score >= 85?}
+    L -->|No, revisions remain| M[Targeted revision proposal]
+    M --> H
+    L -->|No, exhausted or uncertain| N[Human Review]
+    L -->|Yes| O[Accepted editable document]
+    O --> P[Export, only for supported formats]
 ```
 
 Each stage should have a clearly defined input and output.
@@ -96,9 +125,9 @@ The system must avoid creating one monolithic AI-generated layout function.
 
 # 3. Design Document Data Architecture
 
-Every design must be represented by a structured document.
+Every design must be represented by a structured document. The types in this section are the **single normative contract** for brief, art direction, composition plan, document, canvas, and element identities used by all other documents. Other documents may describe concepts in prose, but must not define competing wire shapes. TypeScript snippets are proposed interfaces pending a machine-readable schema and validation tests.
 
-The design document is the source of truth for the editor, renderer, and export system.
+The design document is the source of truth for the editor, renderer, and export system. IDs are stable within a document and references resolve to declared objects/assets. Canvas `width`, `height`, positions, dimensions, spacing, and vector measurements use `CanvasConfig.unit`; physical print conversion uses the declared DPI/profile, never an implicit pixel-to-mm conversion. Stage outputs must be validated before the next stage accepts them.
 
 ## 3.1 Core Design Document
 
@@ -108,6 +137,8 @@ Example TypeScript structure:
 interface DesignDocument {
   id: string;
   name: string;
+  /** Schema contract version, independent of a user's edit/revision count. */
+  schemaVersion: string;
   version: number;
 
   metadata: {
@@ -125,13 +156,38 @@ interface DesignDocument {
 
   composition: CompositionPlan;
 
-  elements: DesignElement[];
+  elements: SceneNode[];
 
   assets: DesignAsset[];
 
   guides: DesignGuide[];
 
   settings: DesignSettings;
+}
+
+interface DesignAsset {
+  id: string;
+  kind: "image" | "font" | "vector";
+  uri: string;
+  mimeType: string;
+  width?: number;
+  height?: number;
+  licensing?: { source?: string; usage?: string };
+}
+
+interface DesignGuide {
+  id: string;
+  kind: "line" | "rect";
+  x: number;
+  y: number;
+  width?: number;
+  height?: number;
+  visible: boolean;
+}
+
+interface DesignSettings {
+  colorProfile?: string;
+  exportScale?: number;
 }
 ```
 
@@ -144,10 +200,17 @@ interface CanvasConfig {
 
   unit: "px" | "mm" | "cm" | "in";
 
-  background: {
-    type: "solid" | "gradient" | "image" | "transparent";
-    value?: string;
-  };
+  background:
+    | { type: "solid"; color: string }
+    | {
+        type: "gradient";
+        kind: "linear" | "radial";
+        stops: Array<{ offset: number; color: string }>;
+        angle?: number; // degrees; linear only
+        center?: { x: number; y: number }; // normalized 0..1; radial only
+      }
+    | { type: "image"; assetId: string }
+    | { type: "transparent" };
 
   dpi?: number;
 
@@ -196,9 +259,18 @@ interface DesignTokens {
 
   shadows: Record<string, ShadowToken>;
 }
+
+interface ShadowToken {
+  x: number;
+  y: number;
+  blur: number;
+  spread: number;
+  color: string;
+  opacity: number;
+}
 ```
 
-Design tokens should make consistent styling easier without forcing every design to look identical.
+Design tokens should make consistent styling easier without forcing every design to look identical. Numeric token dimensions use the canvas unit unless a specific renderer property explicitly defines another unit.
 
 ---
 
@@ -215,6 +287,8 @@ Example:
 ## 4.2 Structured Output
 
 ```ts
+type OutputFormat = "svg" | "png" | "jpeg" | "pdf";
+
 interface DesignBrief {
   category: string;
 
@@ -229,7 +303,7 @@ interface DesignBrief {
   };
 
   content: {
-    headline: string;
+    headline?: string;
     subheadline?: string;
     body: string[];
     details: string[];
@@ -246,8 +320,10 @@ interface DesignBrief {
   requirements: {
     width: number;
     height: number;
-    language: string[];
-    outputFormats: string[];
+    unit: "px" | "mm" | "cm" | "in";
+    languages: string[];
+    outputFormats: OutputFormat[];
+    medium: "digital" | "print" | "both" | "unspecified";
   };
 }
 ```
@@ -339,6 +415,8 @@ The selected direction must support the communication objective.
 
 Consult `DESIGN_SYSTEM.md` and `DESIGN_PATTERNS_LIBRARY.md`.
 
+When the user asks to explore options, or when genuine creative ambiguity makes comparison useful, offer a small set (normally two to four) of distinct direction proposals before committing to the composition plan. Vary structural decisions—focal point, composition family, image role, hierarchy and typographic/shape language—not just color or font. A user selection is an optional human checkpoint within the Creative Direction stage; it does not add or reorder a canonical workflow stage. No chooser or multi-concept feature is implemented in this documentation-only repository.
+
 ---
 
 # 6. Composition Planning Engine
@@ -356,7 +434,7 @@ interface CompositionPlan {
   focalPoint: {
     x: number;
     y: number;
-    strength: number;
+    strength: number; // normalized 0..1; x/y use canvas units
   };
 
   readingFlow: "ltr" | "rtl" | "vertical" | "custom";
@@ -369,7 +447,36 @@ interface CompositionPlan {
 
   constraints: CompositionConstraints;
 }
+
+interface HierarchyItem {
+  contentId: string;
+  rank: number; // 1 is highest priority
+  role: "primary" | "secondary" | "tertiary" | "utility";
+}
+
+interface Rect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+interface CompositionZone {
+  id: string;
+  purpose: string;
+  priority: number;
+  bounds: Rect;
+  elementIds: string[];
+}
+
+interface CompositionConstraints {
+  preserveContent: boolean;
+  allowOverlap: boolean;
+  allowedOverlapPairs: Array<[string, string]>;
+}
 ```
+
+`HierarchyItem.contentId` is a stable content-slot path (`headline`, `subheadline`, `body/<index>`, `details/<index>`, `cta`, or a declared user-content ID); `CompositionZone.elementIds` refer to unique `SceneNode.id` values. Zones and focal coordinates use the canvas unit; focal strength is normalized from zero to one. `GridConfiguration` is defined in §7.2.
 
 ## 6.2 Composition Zones
 
@@ -454,6 +561,8 @@ interface GridConfiguration {
     | "modular"
     | "baseline"
     | "asymmetric"
+    | "golden-ratio"
+    | "thirds"
     | "custom";
 
   columns: number;
@@ -967,35 +1076,52 @@ It must support hierarchical relationships.
 ```ts
 interface SceneNode {
   id: string;
-
-  type:
-    | "text"
-    | "shape"
-    | "path"
-    | "image"
-    | "group";
-
+  type: "text" | "shape" | "path" | "image" | "group";
   name: string;
-
   transform: {
     x: number;
     y: number;
     scaleX: number;
     scaleY: number;
-    rotation: number;
+    rotation: number; // degrees
   };
-
-  style?: Record<string, unknown>;
-
+  geometry?: {
+    width: number;
+    height: number;
+    shape?: "rect" | "ellipse" | "polygon";
+    points?: Array<{ x: number; y: number }>; // local geometry for polygon
+    pathData?: string; // validated SVG path data; never executable markup
+  };
+  text?: {
+    content: string;
+    language?: string;
+    direction?: "ltr" | "rtl" | "auto";
+    typography: TypographyToken;
+  };
+  imagePlacement?: {
+    fit: "contain" | "cover" | "stretch";
+    crop?: { x: number; y: number; width: number; height: number }; // normalized source coordinates
+  };
+  assetId?: string;
+  style?: ElementStyle;
   visible: boolean;
-
   locked: boolean;
+  children?: SceneNode[]; // permitted only for type "group"
+  metadata?: Record<string, string | number | boolean>;
+}
 
-  children?: SceneNode[];
-
-  metadata?: Record<string, unknown>;
+interface ElementStyle {
+  fill?: string;
+  stroke?: string;
+  strokeWidth?: number;
+  opacity?: number; // normalized 0..1
+  radius?: number;
+  shadowToken?: string;
+  blendMode?: "normal" | "multiply" | "screen" | "overlay";
 }
 ```
+
+**Document invariants:** IDs are unique; canvas and element dimensions are positive and finite; every asset reference resolves; transform values are finite and scale is non-zero; opacity and gradient-stop offsets are in `[0,1]`; gradient stops are ordered and colors parse; text nodes have text and typography; image nodes have an image asset and placement; path nodes have validated path data; group nodes alone contain children; and bounds are checked against canvas/safe-area policy. Intentional overlaps must be declared in `allowedOverlapPairs` or explained by the pattern/plan; remaining overlaps are quality findings, not automatically destructive auto-layout instructions. These invariants are proposed validation rules, not implemented behavior.
 
 ## 13.2 Parent-Child Relationships
 
@@ -1391,32 +1517,32 @@ If the design cannot reach the target quality within the allowed attempts:
 
 # 21. Design Engine Execution Pipeline
 
-A complete design-generation request should execute the following stages.
+The creative decision order is fixed as below. Some deterministic operations (such as measuring text, checking assets, or geometry validation) may run more than once as needed, but the orchestration must preserve these hand-offs and return to construction after a revision.
 
-| Stage | Operation | Output |
+| Stage | Owner | Required input → output / gate |
 |---|---|---|
-| 1 | Brief interpretation | Structured brief |
-| 2 | Creative direction | Art direction |
-| 3 | Pattern selection | Composition strategy |
-| 4 | Composition planning | Zones and hierarchy |
-| 5 | Layout calculation | Element geometry |
-| 6 | Typography processing | Text measurements and layout |
-| 7 | Asset processing | Prepared image and vector assets |
-| 8 | Scene construction | Editable scene graph |
-| 9 | Collision detection | Layout diagnostics |
-| 10 | Rendering | Visual preview |
-| 11 | Quality evaluation | Quality report |
-| 12 | Revision | Improved composition |
-| 13 | Validation | Approved document |
-| 14 | Export | Final output |
+| 1. Brief Analysis | Runtime AI Designer | User request → exact structured brief; unknowns/assumptions marked, factual content preserved. |
+| 2. Communication Objective | Runtime AI Designer | Brief → primary message and audience response; missing facts are not invented. |
+| 3. Creative Direction | Runtime AI Designer | Objective → coherent style, mood, concept and reason. |
+| 4. Composition Strategy | Runtime AI Designer + pattern metadata | Direction → one primary pattern, reading flow, zones, grid and constraints. |
+| 5. Visual Hierarchy | Runtime AI Designer | Required content → ordered content-slot IDs, focal point and role. |
+| 6. Typography | Runtime AI Designer + typography services | Script/language and hierarchy → font roles, measured layout and direction; unavailable shaping/font support is an explicit limitation. |
+| 7. Color | Runtime AI Designer + color checks | Direction → role-based palette and contrast evidence. |
+| 8. Asset Selection | Runtime AI Designer + asset service | Visual need → declared, available and permitted asset references, crop/treatment/fallback. |
+| 9. Construction | Design Engine | Validated plan/assets → editable document and scene graph; deterministic geometry and hard constraints. |
+| 10. Rendering | Renderer | Valid document → preview/output with render diagnostics; no quality approval implied. |
+| 11. Quality Evaluation | Quality Engine | Rendered evidence + source document → deterministic check results, evidenced score, failures and revisions. |
+| 12. Revision | Runtime AI Designer proposes; Design Engine applies | Prioritized issues → minimal validated changes; repeat stages 9–11 up to the configured limit. If unresolved or uncertain, route to Human Review. |
+
+After acceptance, export only through an implemented and validated format pipeline. Export is a delivery operation, not part of the twelve-stage creative reasoning order. `DESIGN_QUALITY_METRICS.md` defines status thresholds and hard gates.
 
 ---
 
 # 22. Recommended Technical Architecture
 
-The exact implementation must follow the existing repository and technology stack.
+The exact implementation must follow the existing repository and technology stack. The current checkout has no application source, manifest, or tests, so no stack has been selected or verified.
 
-The following is a reference architecture, not a requirement to replace existing working technologies.
+The following is a reference architecture only, not a requirement to adopt these choices or replace existing working technologies.
 
 ## 22.1 Suggested Core Technologies
 
@@ -1553,60 +1679,53 @@ The recommended architecture is:
 User Brief
     |
     v
-AI Creative Intelligence
-    |
-    v
-Structured Composition Plan
+Runtime AI Designer (canonical ordered workflow, §21)
     |
     v
 Schema Validation
     |
     v
-Deterministic Design Engine
+Deterministic Design Engine -> Editable DesignDocument / Scene Graph
     |
     v
-Editable Scene Graph
+Renderer -> rendered evidence
     |
     v
-Renderer
+Quality Engine (hard checks + evidenced critique)
+    |                         |
+    | accepted                | unresolved / uncertain / failed after budget
+    v                         v
+Supported Export         Human Review
     |
     v
-Quality Evaluation
-    |
-    v
-Revision
-    |
-    v
-Final Design
+Deliverable
+
+Revision proposal -> validated Design Engine -> Renderer -> Quality Engine (bounded loop)
 ```
 
 ## 23.1 AI Responsibilities
 
-AI may determine:
+The Runtime AI Designer may propose:
 
-- Creative concept
-- Art direction
-- Composition pattern
-- Content hierarchy
-- Visual relationships
-- Image prompts
-- Design critique
-- Revision recommendations
+- Communication objective and creative concept
+- Art direction and composition strategy
+- Content hierarchy and visual relationships
+- Asset search/generation prompts
+- Evidence-based critique and targeted revision recommendations
+
+It cannot independently certify deterministic checks or assign a final score without the Quality Engine's evidence contract.
 
 ## 23.2 Engine Responsibilities
 
-The deterministic engine should handle:
+The deterministic Design Engine should handle:
 
-- Coordinate calculations
-- Geometry
-- Text measurement
-- Grid alignment
-- Spacing
-- Transformations
-- Vector construction
-- Collision detection
-- Rendering
-- Export
+- Schema/document validation and coordinate calculations
+- Geometry, grids, spacing, and transformations
+- Text measurement/layout through the supported shaping service
+- Editable vector/scene construction
+- Constraint and collision diagnostics
+
+The Renderer draws the validated document. The Quality Engine evaluates checks and evidence. A supported Export service serializes accepted documents; keep these boundaries explicit even if modules share a process.
 
 ## 23.3 Validation Boundary
 
