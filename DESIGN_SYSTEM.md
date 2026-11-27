@@ -1144,6 +1144,8 @@ The adapted composition should look intentionally designed for its new format.
 
 Every design must pass visual and technical inspection.
 
+The measurable scoring, critical-gate, critique, revision and reporting framework for this evaluation is defined in `DESIGN_QUALITY_METRICS.md` and implemented in `src/quality/`. This section defines what to look for; that document defines how it is measured and enforced.
+
 ## 15.1 Composition Inspection
 
 Evaluate:

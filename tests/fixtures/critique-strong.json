@@ -1,0 +1,59 @@
+{
+  "critic": "art-director:studio-review",
+  "inspectedPreview": true,
+  "categories": {
+    "creativeDirection": {
+      "concept": { "points": 3, "evidence": ["The two-line 'FORM / FUNCTION' headline plus a specimen portrait commits to one idea: workshop as typographic system."] },
+      "direction": { "points": 2, "evidence": ["Space Grotesk headline, restrained neutral palette and single ochre accent read as Swiss editorial, matching the chosen direction."] },
+      "originality": { "points": 2.5, "evidence": ["Asymmetric text column against a portrait, cropped at the top edge, avoids the centred poster-template composition."] },
+      "consistency": { "points": 2, "evidence": ["One sans family, one accent colour and square geometry are repeated across the headline, CTA and rule."] },
+      "personality": { "points": 1.5, "evidence": ["Voice is confident and editorial; the short date label adds a workshop-poster cadence without becoming decorative noise."] }
+    },
+    "composition": {
+      "overall": { "points": 3.5, "evidence": ["Left text column and right portrait form a clear 55/45 split; the ochre rule seeds the eye at the top-left and the CTA closes the column."] },
+      "flow": { "points": 1.5, "evidence": ["Entry starts at the accent rule, travels down the headline to the CTA, then lands on the portrait and footer."] }
+    },
+    "hierarchy": {
+      "flow": { "points": 2, "evidence": ["Headline, subheadline, body, CTA and footer step down consistently; nothing competes with the headline."] }
+    },
+    "typography": {
+      "typefaceSelection": { "points": 2, "evidence": ["A condensed display face for the headline against Inter for running text suits a design-workshop poster."] },
+      "pairing": { "points": 2, "evidence": ["Display grotesque and neutral sans share proportions, so the pairing reads as deliberate rather than accidental."] },
+      "composition": { "points": 1.5, "evidence": ["The stacked headline breaks cleanly at the word boundary; the colour accent rule aligns exactly with its left edge."] }
+    },
+    "color": {
+      "paletteSelection": { "points": 2.5, "evidence": ["Near-black ground, warm off-white type and one ochre accent keep the palette intentional and print-friendly."] }
+    },
+    "spacing": {
+      "optical": { "points": 0.75, "evidence": ["The left column's optical margin is consistent; the CTA plate's internal padding is slightly heavier on the right than the left."] }
+    },
+    "imagery": {
+      "relevance": { "points": 2, "evidence": ["The portrait shows students reviewing type specimens, directly supporting the workshop subject."] }
+    },
+    "effects": {
+      "depth": { "points": 1, "evidence": ["Depth comes from the portrait/keyline contrast rather than shadows, keeping the poster flat and modern."] },
+      "surface": { "points": 0.75, "evidence": ["Surfaces are clean; the CTA plate edge could use a tighter optical inset."] },
+      "finish": { "points": 0.75, "evidence": ["The artwork reads finished; the footer's second alignment axis is the only visible rough edge."] }
+    },
+    "communication": {
+      "clarity": { "points": 2.5, "evidence": ["The workshop promise, dates and venue are legible in one pass, and the CTA is unmistakable."] },
+      "audience": { "points": 1, "evidence": ["Tone and density suit design students and working designers without over-explaining."] }
+    }
+  },
+  "strengths": [
+    "Headline dominates the hierarchy with a 2.9x size ratio over supporting copy",
+    "One accent colour used only for the rule and CTA, keeping attention controlled",
+    "Text column and portrait balance each other across a deliberate asymmetric split"
+  ],
+  "weaknesses": [
+    "Footer text establishes a second alignment axis 4 units away from the main column"
+  ],
+  "improvementPlan": [
+    {
+      "priority": "low",
+      "affectedElementIds": ["date-label", "venue"],
+      "problem": "The footer lines sit 4 units off the headline's left alignment axis, so the eye registers a second, unintended grid.",
+      "recommendedCorrection": "Shift both footer text frames to x=72 and confirm they share the same baseline."
+    }
+  ]
+}

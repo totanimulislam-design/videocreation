@@ -1,0 +1,19 @@
+{
+  "name": "creative-studio",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Creative Studio — structured, editable, code-powered graphic design. This package currently ships the design-document core model and the deterministic Quality Engine.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "scripts": {
+    "test": "node --test",
+    "typecheck": "tsc --noEmit",
+    "quality": "node src/quality/cli.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2"
+  }
+}

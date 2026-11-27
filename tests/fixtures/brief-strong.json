@@ -1,0 +1,29 @@
+{
+  "category": "poster",
+  "artDirection": "Swiss editorial",
+  "requiresCallToAction": true,
+  "targetAssetDpi": 150,
+  "contentRequirements": [
+    {
+      "id": "title",
+      "label": "Workshop title",
+      "value": "FORM FUNCTION",
+      "kind": "text",
+      "required": true
+    },
+    {
+      "id": "date",
+      "label": "Workshop dates",
+      "value": "14\u201316 Dec 2026",
+      "kind": "date",
+      "required": true
+    },
+    {
+      "id": "venue",
+      "label": "Venue",
+      "value": "Studio 4, Dhanmondi",
+      "kind": "contact",
+      "required": true
+    }
+  ]
+}
