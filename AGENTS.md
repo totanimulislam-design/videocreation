@@ -6,27 +6,34 @@ This file tells any AI coding agent (or human contributor) how to work safely an
 
 ## 1. Repository Status (as of 2026-11-27)
 
-- This repository currently contains **documentation only** — `README.md` is the architecture and platform specification for "Creative Studio", a professional, code-powered graphic design platform, and `DESIGN_SYSTEM.md` defines the creative, typographic, compositional, and visual quality standards.
-- **No application source code exists yet.** There is no `package.json`, no `src/` tree, no build tooling, and no test runner. Do not assume any of these exist.
-- `DESIGN_SYSTEM.md` and `README.md` are both authoritative in their respective domains: `DESIGN_SYSTEM.md` governs creative direction, design principles, typography, color, composition, anti-patterns, and visual critique; `README.md` governs the technical architecture, design document schema, orchestration pipeline, and implementation roadmap.
-- The README itself describes a *target* architecture. Where the README and reality differ, reality wins and `README.md`, `DESIGN_SYSTEM.md`, and `AGENTS.md` should be updated to reflect it.
+- The repository now contains a working first slice of the platform alongside the specifications:
+  - `README.md` — architecture and platform specification.
+  - `DESIGN_SYSTEM.md` — creative, typographic, compositional, and visual standards.
+  - `DESIGN_QUALITY_METRICS.md` — the measurable quality framework: weighted scoring, critical gates, critique contract, revision policy, report format.
+  - `src/core/` — the canonical structured design document model (`design-document/types.ts`, `validation.ts`, `traverse.ts`, `factory.ts`), geometry (`geometry/bounds.ts`) and colour maths (`color/color.ts`).
+  - `src/quality/` — the implemented Quality Engine (analysis, deterministic validators, category scoring, SVG preview, critic adapter, revision engine, reports, pipeline, CLI).
+  - `tests/` — Node test suite plus design-document and critique fixtures.
+- Tooling exists: `package.json` (ESM, Node ≥22.18), `tsconfig.json`, and two dev dependencies only (`typescript`, `@types/node`). There is **no build step and no runtime dependency**: sources are native TypeScript executed by Node's type stripping.
+- The application layers described in `README.md` (browser renderer, editor, AI orchestrator, production export, state store) **do not exist yet**. Do not invent their files or APIs.
+- `README.md`, `DESIGN_SYSTEM.md`, and `DESIGN_QUALITY_METRICS.md` are authoritative in their own domains. Where a spec and reality differ, reality wins and the documentation must be corrected in the same change.
 
 ---
 
 ## 2. Mandatory Instructions (read before implementing anything)
 
-1. Read `README.md` **completely** before implementing any feature. It is long (~2,100 lines) and dense — skim the Table of Contents first, then read in full.
+1. Read `README.md` **completely** before implementing any feature. It is long and dense — skim the Table of Contents first, then read in full.
 2. Read `DESIGN_SYSTEM.md` **completely** before designing or implementing any creative or design-generation feature. It is the primary creative design rulebook governing art direction, composition, typography, color, shapes, critique, anti-patterns, and checklists.
-3. Understand the existing project architecture before editing. Today that means understanding the spec; once code lands, it means reading the modules you touch.
-4. Follow the established design document schema. The canonical object shape is the `DesignElement` interface in `README.md` ("5.1 Use a Structured Vector-Based Design Document"): `id`, `type`, `name`, `transform` (x, y, width, height, rotation, scaleX, scaleY), `style` (fill, stroke, strokeWidth, opacity, blendMode), optional `effects`, `visible`, `locked`, `zIndex`, optional `children`. Extend it with type-specific properties (typography for text, crop/asset refs for images, path data for paths) rather than inventing parallel structures.
-5. Reuse existing rendering and graphics systems. Do not introduce a second canvas library, a second rendering path, or a parallel object model.
-6. Do not introduce duplicate or conflicting systems (e.g., two state stores, two schema validators, two export pipelines).
-7. Never bypass the design production pipeline (see §5 below). A design that has not passed through the pipeline stages is not done, regardless of how it looks.
-8. Preserve existing working functionality. Do not refactor, delete, or "improve" working code that is unrelated to the task.
-9. Validate every implementation (see §7 below). "It renders" is not validation.
-10. Update documentation when architecture or creative standards change. If you change the schema, the pipeline, the directory structure, the tech stack, or creative standards, update `README.md`, `DESIGN_SYSTEM.md`, and this file in the same change.
+3. Read `DESIGN_QUALITY_METRICS.md` **completely** before touching scoring, validation, preview, critique, revision, or reporting. It is the authority for weights, thresholds, critical gates, and the critic contract.
+4. Understand the existing project architecture before editing. Read the modules you touch, including their tests and fixtures.
+5. Follow the established design document schema. The canonical object shape is `DesignElement` in `README.md` §5.1, implemented in `src/core/design-document/types.ts`: `id`, `type`, `name`, `transform` (x, y, width, height, rotation, scaleX, scaleY), `style` (fill, stroke, strokeWidth, opacity, blendMode), optional `effects`, `visible`, `locked`, `zIndex`, optional `children`, and optional `meta` (`role`, `decorative`, `intentionalOverlap`, `language`). Extend it with type-specific properties rather than inventing parallel structures. The document container (`canvas`, `assets`, `fonts`, `metadata`) is equally canonical.
+6. Reuse existing rendering and graphics systems. Do not introduce a second canvas library, a second rendering path, or a parallel object model. There is exactly one preview renderer (`src/quality/visual/preview-generator.ts`) and one validator suite (`src/quality/validators/`) today; extend them rather than duplicating them.
+7. Do not introduce duplicate or conflicting systems (e.g., two state stores, two schema validators, two export pipelines, two scoring rulebooks, two issue vocabularies).
+8. Never bypass the design production pipeline (see §5 below). A design that has not passed through the pipeline stages is not done, regardless of how it looks.
+9. Preserve existing working functionality. Do not refactor, delete, or "improve" working code that is unrelated to the task.
+10. Validate every implementation (see §7 below). "It renders" is not validation.
+11. Update documentation when architecture or creative standards change. If you change the schema, pipeline, directory structure, tech stack, scoring rules, or creative standards, update `README.md`, `DESIGN_SYSTEM.md`, `DESIGN_QUALITY_METRICS.md`, and this file in the same change.
 
-For all AI-generated graphic designs, follow the complete design production workflow and creative standards defined in `README.md` and `DESIGN_SYSTEM.md`. Professional visual quality, editability, rendering accuracy, and production reliability are mandatory requirements, not stretch goals.
+For all AI-generated graphic designs, follow the complete design production workflow and creative standards defined in `README.md`, `DESIGN_SYSTEM.md`, and `DESIGN_QUALITY_METRICS.md`. Professional visual quality, editability, rendering accuracy, and production reliability are mandatory requirements, not stretch goals.
 
 ---
 
@@ -63,7 +70,11 @@ These come from `README.md` and must hold for all code and all generated designs
 - **Same document for preview and export.** The editor preview and the PNG/SVG/PDF export must render from the same underlying design document.
 - **Separation of concerns.** Keep rendering, editing, export, state, and intelligence in separate modules. Keep AI providers replaceable behind a common adapter.
 - **Deterministic validation enforces hard requirements; AI critique is advisory.** Contrast, overflow, bounds, references, and schema correctness are enforced by deterministic checks. Visual critique guides refinement.
-- **Revision budget.** Automated revision loops are capped (README suggests ~3 rounds) before handing back to the user. Never loop indefinitely.
+- **Approval requires inspection and coverage.** The critic may only score criteria that require seeing the artwork; measured criteria stay authoritative and may not be re-scored. A design cannot be `approved` while any criterion is unassessed. Never invent a score, and never claim to have inspected something that was not rendered.
+- **Versioned scoring rules.** Scores embed the ruleset version (`SCORING_RULES_V1` = `1.0.0`). Changing weights or thresholds requires a new version; never silently reinterpret historical reports.
+- **Critical failures override scores.** Missing content or assets, missing fonts or glyphs, clipped or unreadable essential text, obscured content, invalid structure, and broken exports reject the design regardless of its score.
+- **Unverifiable is reported, not guessed.** Contrast over unanalysed imagery, approximate glyph metrics, and unrendered previews must be labelled in the report. Do not fabricate certainty.
+- **Revision budget.** Automated revision loops are capped (default 3 rounds) and only apply mathematically safe, targeted corrections before handing back to the user. Never loop indefinitely.
 - **Recommended stack** (use these unless an existing, working choice already covers the need): React + TypeScript, Tailwind CSS, SVG, HTML Canvas (rendering-intensive work), Konva/Fabric (interactive canvas — pick one, not both), Paper.js (geometry), Zustand (state), Zod (validation), Node.js backend, PostgreSQL, S3-compatible storage.
 - **Technology selection rules:** don't introduce multiple canvas libraries without a clear technical reason; keep the design document renderer-independent; don't bypass the chosen stack for one-off needs; avoid unnecessary dependencies.
 - **Target directory structure** is described in `README.md` §10. It is a target, not a mandate to create empty folders — implement modules incrementally as features land.
@@ -80,9 +91,9 @@ Whenever a user requests a new design, the agent MUST follow this workflow (`REA
 3. **STEP 03 — Plan.** Establish layout, grid, hierarchy, typography, color palette, image strategy, shape language, and the focal point (`DESIGN_SYSTEM.md` §3, §5–10, §12–13).
 4. **STEP 04 — Generate.** Create the structured design document with real, editable elements (text, shapes, paths, images as positioned assets).
 5. **STEP 05 — Render.** Render the document through the graphics engine (SVG/Canvas pipeline).
-6. **STEP 06 — Inspect.** Evaluate the rendered composition for visual and technical problems (`DESIGN_SYSTEM.md` §15–17).
-7. **STEP 07 — Refine.** Fix weaknesses with targeted, local revisions — do not rebuild the whole design for a local flaw (`DESIGN_SYSTEM.md` §16).
-8. **STEP 08 — Validate.** Run structural, layout, typography, and export validation (`README.md` §7, `DESIGN_SYSTEM.md` §18).
+6. **STEP 06 — Inspect.** Evaluate the rendered composition for visual and technical problems (`DESIGN_SYSTEM.md` §15–17). Code path: `evaluateDesign()` / `runQualityPipeline()` renders an SVG preview, runs the deterministic validators, and merges a validated visual critique.
+7. **STEP 07 — Refine.** Fix weaknesses with targeted, local revisions — do not rebuild the whole design for a local flaw (`DESIGN_SYSTEM.md` §16, `DESIGN_QUALITY_METRICS.md` §8). Code path: `planRevisions()` + `applyMechanicalRevisions()` inside the bounded `runRevisionLoop()`.
+8. **STEP 08 — Validate.** Run structural, layout, typography, and export validation (`README.md` §7, `DESIGN_SYSTEM.md` §18, `DESIGN_QUALITY_METRICS.md` §2/§4/§15). Code path: the deterministic gate in `reports/report-generator.ts` (`determineDeliveryStatus`).
 9. **STEP 09 — Deliver.** Hand over the final editable design plus the requested export formats.
 
 ### Design quality bar (from README & DESIGN_SYSTEM)
@@ -112,7 +123,24 @@ Match validation rigor to the change:
 - **Design output changes:** run the full §5 workflow, including inspection and validation, and confirm the output against `DESIGN_SYSTEM.md` §18 and the production acceptance criteria in `README.md` §15 (design quality, technical quality, production quality, AI quality checklists).
 - **Export changes:** test the actual exported files (PDF/PNG/SVG), not just the editor preview — including dimensions, DPI, bleed, and transparency where applicable.
 
-If validation tooling does not exist yet (it doesn't, today), say so explicitly in your delivery notes and describe exactly what you did verify and what you could not.
+Available validation commands:
+
+```bash
+npm test            # node --test — unit + integration suite
+npx tsc --noEmit    # strict type check (no build output)
+node src/quality/cli.ts tests/fixtures/poster-strong.json \
+  --assets tests/fixtures/assets-strong.json \
+  --brief tests/fixtures/brief-strong.json \
+  --critique tests/fixtures/critique-strong.json \
+  --preview /tmp/preview.svg --markdown /tmp/report.md
+```
+
+Quality-engine rules for validation:
+
+- New validator → add a focused test with a purpose-built document, and confirm it emits the right code, severity, element ids and gate behaviour.
+- New scoring rule or weight → bump the ruleset version, add the rule to `SCORING_RULES_V1` (or a new version), and keep the weights summing to 100.
+- Preview/rendering change → render a real fixture and look at it. The translation bug fixed in the first implementation passed every unit test and was only visible in the rendered image.
+- Never mark a design approved based on tests alone: approval requires a preview and a validated critique.
 
 ---
 
@@ -126,6 +154,10 @@ If validation tooling does not exist yet (it doesn't, today), say so explicitly 
 - Repetitive, template-like compositions; designs where every element is equally prominent; decorative elements without purpose.
 - Hardcoding designs that cannot adapt to different content or dimensions.
 - Claiming professional quality merely because something renders.
+- Approving a design from JSON or SVG source without inspecting a rendered preview.
+- Letting the critic re-score measured criteria, or filling unassessed criteria with optimistic numbers.
+- Reporting an approximate measurement as exact, or a guessed contrast ratio for text over an unanalysed image.
+- Editing `SCORING_RULES_V1` in place instead of versioning the ruleset.
 
 ---
 
@@ -150,5 +182,10 @@ If validation tooling does not exist yet (it doesn't, today), say so explicitly 
 | Technology stack table | `README.md` §9 |
 | Acceptance criteria checklists | `README.md` §15; `DESIGN_SYSTEM.md` §18 |
 | Development rules | `README.md` §14 |
+| Quality framework (weights, gates, critic contract, reports) | `DESIGN_QUALITY_METRICS.md` §2, §4, §7, §12 |
+| Quality engine implementation | `src/quality/pipeline.ts`, `src/quality/evaluator/`, `src/quality/validators/` |
+| Design document model & schema validation | `src/core/design-document/types.ts`, `src/core/design-document/validation.ts` |
+| Quality CLI and fixtures | `src/quality/cli.ts`, `tests/fixtures/` |
+| Test / typecheck commands | `npm test`, `npx tsc --noEmit` |
 
 **When in doubt:** preserve the working system, follow `README.md` and `DESIGN_SYSTEM.md`, keep creative intelligence separate from graphics execution, validate before declaring done — and ask the user when the spec and the task genuinely conflict.

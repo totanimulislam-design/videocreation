@@ -1377,6 +1377,35 @@ Extend the object model with type-specific properties.
 
 For example, text elements need typography properties, image elements need image references and crop settings, and paths need editable path data.
 
+### Document Container
+
+Elements live inside a document that carries the canvas, declared resources and metadata. The canonical implementation of this model is `src/core/design-document/types.ts`; `src/core/design-document/validation.ts` enforces it before anything is rendered.
+
+```typescript
+interface DesignDocument {
+  id: string;
+  name?: string;
+  schemaVersion?: string;
+  canvas: {
+    width: number;
+    height: number;
+    unit: "px" | "mm" | "in";
+    dpi?: number;
+    background?: string;
+    bleed?: number;
+    safeMargin?: number;
+    colorMode?: "rgb" | "cmyk";
+  };
+  category?: string;
+  elements: DesignElement[];
+  assets?: AssetDefinition[];
+  fonts?: FontDefinition[];
+  metadata?: DocumentMeta;
+}
+```
+
+Every element also carries an optional `meta` block (`role`, `decorative`, `intentionalOverlap`, `language`). Semantic roles make hierarchy and content checks deterministic, and `intentionalOverlap` lets art direction declare deliberate layering so it is never reported as an accidental collision.
+
 ## 5.2 SVG Graphics Engine
 
 SVG should be the primary format for scalable vector artwork.
@@ -1650,6 +1679,44 @@ Use a configurable revision budget to prevent endless AI loops.
 
 A reasonable initial target is three automated revision rounds, followed by user review if the design still fails its quality requirements.
 
+## 7.6 Implemented Quality Engine (v1)
+
+The measurable quality framework in `DESIGN_QUALITY_METRICS.md` is implemented as a software module under `src/quality/`. It follows the same separation as the rest of the platform: deterministic checks decide hard requirements, and visual critique is advisory evidence supplied by a replaceable critic adapter.
+
+| Stage | Implementation |
+|---|---|
+| Render preview | `src/quality/visual/preview-generator.ts` — deterministic SVG from the same document the exporter uses |
+| Objective validation | `src/quality/validators/*` — document, bounds, text fitting, typography, fonts, assets, contrast, layout, spacing, content, export |
+| Category scoring | `src/quality/evaluator/*` — versioned weighted ruleset, sub-criteria and quality-level bands |
+| Visual inspection | `src/quality/visual/visual-critic.ts` + `critique-schema.ts` — provider-agnostic critic with a strict JSON contract |
+| Revision | `src/quality/revision/*` — prioritizer, planner, mechanical executor, bounded controller |
+| Reports | `src/quality/reports/*` — machine-readable report (§12) and Markdown review output |
+| Orchestration | `src/quality/pipeline.ts` — evaluate, inspect, revise, re-render, re-evaluate |
+
+Behaviour that must not drift from the framework:
+
+- **Weights are fixed and versioned.** Ruleset `1.0.0` uses the exact 12/15/12/14/10/8/8/6/8/7 split; reports embed the ruleset version so historical scores stay interpretable.
+- **Schema gate before rendering.** A document that fails the canonical model is never rendered, measured or scored; it is rejected with the structural problems listed.
+- **Measured criteria stay authoritative.** The critic may only score criteria that require seeing the artwork; attempts to re-score measured criteria are rejected.
+- **Approval requires inspection.** A design can only be `approved` when every criterion is assessed, no critical failure exists, and the score reaches the 85-point delivery minimum (90 is the target). Otherwise the status is `revision_required`, or `rejected` when a §4 critical failure is present, the measured criteria earn less than 50% of their points, or the complete score falls below 70.
+- **Unverified is not approved.** Text metrics default to a documented approximation flagged in every report; a renderer can inject exact metrics through the `TextMeasurer` interface. Contrast over imagery without a dominant colour is reported as unverifiable, never guessed.
+- **Revisions are targeted and bounded.** Only mathematically safe corrections (moving clipped elements inside the canvas, growing undersized text frames, raising unreadable type sizes, fixing leading, selecting an accessible text colour) are applied automatically; the default budget is three rounds before hand-back to the user.
+- **Multi-size delivery is checked.** Every requested export is validated for dimensions, aspect, DPI, transparency, bleed and artifact integrity, and each adapted document can be evaluated independently (`evaluateVariants`). Reduced-size exports are checked for legible text rather than assumed to remain readable.
+
+Current limits, stated explicitly: preview generation is SVG-only (no browser/PNG rasterization yet), text wrapping uses estimated glyph advances until the typography engine lands, category profiles currently vary only dimension and print expectations rather than re-weighting the score, and the critic is an interface — no model provider is wired in this repository. The quality report records these limits rather than hiding them.
+
+Run it with:
+
+```bash
+npm test                                   # deterministic + integration test suite
+npx tsc --noEmit                           # type check
+node src/quality/cli.ts <design.json> \
+  --assets assets.json --brief brief.json --critique critique.json \
+  --preview out.svg --report report.json --markdown report.md
+```
+
+The CLI exits `0` for approved, `1` for revision required, `2` for rejected and `3` for usage or I/O errors.
+
 ---
 
 # 8. Production Rendering Architecture
@@ -1735,7 +1802,7 @@ Use technologies according to their actual responsibilities.
 | Image Processing | Canvas / WebAssembly |
 | Typography | Browser Font APIs / Fontkit |
 | State Management | Zustand |
-| Schema Validation | Zod |
+| Schema Validation | Zod (recommended; the v1 core uses a dependency-free structural validator behind the same contract) |
 | AI Integration | Model-provider abstraction |
 | Backend | Node.js |
 | Database | PostgreSQL |
@@ -1828,17 +1895,22 @@ src/
 │   └── color-management/
 │
 ├── quality/
-│   ├── structural/
-│   ├── layout/
-│   ├── typography/
-│   ├── visual/
-│   └── regression/
+│   ├── evaluator/      # versioned rules, category scoring, quality levels
+│   ├── validators/     # deterministic document, layout, type, colour, export checks
+│   ├── visual/         # SVG preview, critique schema, critic adapter
+│   ├── revision/       # prioritizer, planner, mechanical executor, controller
+│   ├── reports/        # machine-readable and Markdown reports
+│   ├── text/           # measurement, wrapping, content normalisation
+│   ├── analysis.ts     # single shared document measurement pass
+│   └── pipeline.ts     # render → validate → score → critique → revise
 │
 └── shared/
     ├── constants/
     ├── utilities/
     └── types/
 ```
+
+The implemented core model lives in `src/core/design-document` (`types.ts`, `validation.ts`, `traverse.ts`, `factory.ts`) with geometry in `src/core/geometry` and colour maths in `src/core/color`. The `quality/` layout above is the one defined by `DESIGN_QUALITY_METRICS.md` §14, which supersedes the earlier placeholder grouping (`structural/`, `layout/`, `typography/`, `regression/`).
 
 This is a target architecture. Implement it incrementally rather than creating empty folders for every module immediately.
 
@@ -2030,6 +2102,8 @@ Build the system in the following order.
 Do not attempt to implement every advanced feature at once.
 
 Establish a reliable end-to-end design pipeline first, then progressively improve its creative capabilities.
+
+**Current status:** the structured design document (phase 1) and the deterministic quality engine (phases 1 and 8 groundwork) exist in `src/core` and `src/quality`, with tests. Browser rendering, editing tools, the typography engine, orchestrator, and production export remain to be built; see §7.6 for exactly what the quality engine can and cannot verify today.
 
 ---
 
