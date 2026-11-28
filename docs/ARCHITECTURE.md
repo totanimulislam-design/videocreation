@@ -1,9 +1,10 @@
 # Architecture — Design Intelligence Foundation (Task 03, Phase 1)
 
-> **Scope.** This document describes the foundation implemented in this repository during Phase 1:
-> the canonical design schema, the brief intelligence parser, the design-plan validator, the pattern
-> metadata integration, and their tests. It does **not** describe a renderer, editor, layout engine,
-> or AI provider integration — none of those exist yet.
+> **Scope.** This document describes the foundation implemented in this repository: the canonical
+> design schema, the brief intelligence parser, the design-plan validator, the pattern metadata and
+> selection-guidance integration, the AI provider *interface*, and their tests. It does **not**
+> describe a renderer, editor, layout engine, or AI provider integration — none of those exist yet,
+> and no model is called.
 
 ## 1. What was here before
 
@@ -59,6 +60,7 @@ src/
 ├── knowledge/       stable identifiers taken from the design documents
 │   ├── ids.ts           design categories, styles, colour strategies, roles, slots
 │   ├── patterns.ts      registry over generated pattern metadata + combinations
+│   ├── selection-guidance.ts  machine-readable selection rules (§1.1, §2.2, §2.3, §16.2, §24)
 │   └── generated/
 │       └── patterns.generated.ts   AUTO-GENERATED from DESIGN_PATTERNS_LIBRARY.md
 ├── brief/           natural-language brief → structured DesignBrief
@@ -82,11 +84,18 @@ src/
 tools/
 └── generate-knowledge.ts   compiles pattern metadata from the Markdown source
 
+examples/
+└── foundation-smoke.ts     runnable Definition of Done (non-zero exit on failure)
+
+.github/workflows/ci.yml    typecheck + tests on Node 22.18 / 22.x + metadata drift check
+
 tests/
 ├── fixtures/plans.ts       hand-authored valid plan fixtures (digital, print, Arabic, mixed)
 ├── brief-parser.test.ts          35 tests
 ├── plan-validator.test.ts       104 tests
 ├── pattern-integration.test.ts   19 tests
+├── knowledge-selection.test.ts  19 tests
+├── ai-provider.test.ts          32 tests
 ├── schema.test.ts                29 tests
 ├── pipeline.test.ts              15 tests
 └── robustness.test.ts            35 tests
@@ -230,7 +239,7 @@ exist throws at load time.
 
 ## 8. Testing
 
-`npm test` runs 237 tests across six files using Node's built-in runner. Coverage includes every
+`npm test` runs 288 tests across eight files using Node's built-in runner. Coverage includes every
 scenario the task required:
 
 | Required scenario | Where |
@@ -254,7 +263,73 @@ helpers, script detection, factories, pattern-catalogue drift, and the admission
 `npm run typecheck` runs `tsc --noEmit` under `strict`, `noUncheckedIndexedAccess`,
 `erasableSyntaxOnly` and `verbatimModuleSyntax`.
 
-## 9. Known limitations
+## 9. The AI provider boundary (interface only)
+
+The deterministic parser is intentionally not a language model. Richer interpretation is future work,
+and the seam for it is declared in `src/ai/` so that future work cannot accidentally bypass
+validation or bring network calls into the parser.
+
+**What exists:** the interface, the proposal data shapes, the validation of untrusted proposals, and
+the orchestration that turns every failure mode into a typed result. **What does not exist:** any
+provider, prompt, model call, vendor SDK, API-key handling or network code. `NoAiProvider` is the
+default and rejects every request with `NoAiProviderError`, so shipped behaviour stays deterministic
+and offline.
+
+### Why a proposal is not a `DesignBrief`
+
+A provider returns `AiBriefProposal` — a list of candidate field values with per-field provenance —
+never a `DesignBrief` and never a `DesignDocument`. This keeps the contract single-sourced (a model
+cannot return a shape that competes with `src/schema/types.ts`) and makes "the model suggested this"
+mechanically distinct from "the brief says this".
+
+The proposable field set is a narrow subset (`PROPOSAL_FIELDS`) that excludes IDs, geometry, the
+scene graph and every structural section of the document.
+
+### The fact-safety rule
+
+The dangerous failure is a model inventing a fact — a price, a date, a phone number, a name — and
+having it reach a canvas. `validateAiBriefProposal` therefore requires that a **factual** field
+(`brand.name`, `content.*`) claiming `explicit` or `derived` evidence must quote text that is a
+verbatim, case- and whitespace-insensitive substring of the user's original brief, and every element
+of an array value must be traceable too. Otherwise the proposal is rejected
+(`AI_PROPOSAL_FACT_UNSOURCED`). Creative fields (mood, style, objective) need no quote but must be
+marked `assumed`/`derived` at confidence ≤ the ceiling.
+
+An unsourced fact can be admitted only when a caller explicitly passes `allowUnsourcedFacts: true`,
+and then only as a *warning* for human review — never for automatic use.
+
+### Outcome matrix
+
+| Situation | Status | Code |
+|---|---|---|
+| No provider, or `available: false` | `unavailable` | `AI_PROVIDER_MISSING` |
+| Provider throws, or exceeds the timeout | `failed` | `AI_PROVIDER_FAULT` |
+| Proposal fails validation | `rejected` | `AI_PROPOSAL_*` |
+| Proposal passes validation | `proposed` | warnings may accompany it |
+
+`requestBriefProposal` never throws. Losing the AI path always degrades quality, never correctness:
+the deterministic brief remains valid and usable in every case.
+
+## 10. Pattern selection guidance
+
+`src/knowledge/selection-guidance.ts` makes the library's *selection* rules machine-readable: the
+§2.2 requirement→direction table, the §2.3 requirements, the §1.1 five-part decision contract, the
+§16.2 combination restrictions and the §24 checklist. Drift tests re-parse the Markdown and fail if
+the transcription diverges.
+
+It deliberately does **not** carry per-pattern `selectionGuidance`: §19.1 lists such fields but the
+catalogue supplies only `Structure`, `Construction` and `Best for` per entry. Block decoration of all
+100 patterns with generic advice would fabricate metadata. The module instead reports the gap
+(`unmetDecisionContractItems`), matching the `PATTERN_GUIDANCE_INCOMPLETE` warning the validator
+already emits.
+
+Two attributes — `orientationFit` and `multiPageOrPanel` — are derived from each pattern's own name
+vocabulary and are marked `provenance: 'derived'` so they are never mistaken for authored metadata.
+
+`assessPatternSelection` is advisory by construction: it returns notes and has no verdict field, so
+`validateDesignPlan` remains the single admission gate.
+
+## 11. Known limitations
 
 Stated plainly, because reporting them is part of the task:
 
@@ -271,12 +346,23 @@ Stated plainly, because reporting them is part of the task:
    filled in.
 6. **No Zod-based JSON Schema export.** The contract is TypeScript plus a runtime validator; a
    machine-readable JSON Schema could be generated from it later if another language needs it.
+   Deliberately deferred: generating one needs an extra generator dependency, and hand-authoring it
+   would duplicate the canonical contract that this repository keeps single-sourced.
+7. **No AI provider exists.** `src/ai/` implements the seam and the validation of untrusted
+   proposals, not an integration. `NoAiProvider` is the default and rejects every request, so the
+   shipped behaviour is fully deterministic and offline. Tests use hand-built fakes to exercise the
+   seam; they are not evidence of model capability.
+8. **Per-pattern failure guidance is absent from the source document.** §19.1 lists `avoidWhen`,
+   `commonMistakes`, `validationChecks`, `adaptationRules` and `complexity`; the catalogue supplies
+   only `Structure`, `Construction` and `Best for`. They are reported as missing, never invented.
+9. **Pattern selection guidance is advisory.** `assessPatternSelection` returns notes and gaps and
+   has no verdict field, so `validateDesignPlan` remains the only admission gate.
 7. **Category keyword lists are English/Bengali/Arabic/Urdu only** and are data in `extract.ts`, easy
    to extend.
 8. **`DesignPlan` validation requires the brief for content-preservation checks.** Without it the
    result carries an explicit warning rather than a false pass.
 
-## 10. Next steps (dependency order)
+## 12. Next steps (dependency order)
 
 1. **Text measurement and fitting** via a real shaping engine — the largest missing piece for honest
    typography validation.

@@ -2,7 +2,7 @@
 
 > A documentation foundation for a proposed AI-assisted, editable graphic-design platform, plus the
 > first implemented layer of the design engine: the **canonical design schema**, a **brief
-> intelligence parser**, and a **design-plan validator**, with 237 automated tests.
+> intelligence parser**, and a **design-plan validator**, with 288 automated tests and a CI workflow.
 >
 > The platform as a whole is still a proposed product. Rendering, layout computation, text
 > measurement, composition selection, the editor, export, and AI provider integration are **not
@@ -20,6 +20,7 @@ Read the document for the kind of decision being made; do not treat this README 
 | `DESIGN_ENGINE_SPEC.md` | Implementers of the design platform | Proposed architecture, canonical data contract, deterministic construction, rendering boundary, and implementation strategy. |
 | `DESIGN_QUALITY_METRICS.md` | Quality Engine, Runtime AI Designer, and human reviewers | Scoring, hard gates, validation procedures, critique, revision, and delivery statuses. |
 | `docs/ARCHITECTURE.md` | Implementers | What Phase 1 actually implements: layer map, technology justification, parser safety rules, validator guarantees, and known limitations. |
+| `IMPLEMENTATION_REPORT.md` | Reviewers of Task 03-R | What this task added, the commands actually run and their results, and the remaining limitations. |
 
 **Precedence:** (1) the checked-out implementation and tests determine what exists; (2) `AGENTS.md` governs coding-agent behavior; (3) `DESIGN_ENGINE_SPEC.md` is authoritative for proposed architecture and shared data structures; (4) `DESIGN_SYSTEM.md` is authoritative for creative rules; (5) `DESIGN_PATTERNS_LIBRARY.md` supplies reusable structures subordinate to the brief and design system; (6) `DESIGN_QUALITY_METRICS.md` is authoritative for evaluation and acceptance. If a requirement conflicts with user content, preserve the user's factual content and flag unresolved ambiguity. If documents conflict, follow this precedence, resolve the conflict in documentation, and do not silently invent an implementation.
 
@@ -60,13 +61,19 @@ Phase 1 added a dependency-free TypeScript foundation. Everything in this list i
 | Pattern metadata compiled from `DESIGN_PATTERNS_LIBRARY.md` (100 patterns) with a drift test | `tools/`, `src/knowledge/` | `pattern-integration.test.ts` |
 | Stable identifier catalogues from the design documents | `src/knowledge/ids.ts` | `pattern-integration.test.ts` |
 | Admission gate so invalid plans cannot proceed to a renderer | `src/validation/design-plan.ts` | `pipeline.test.ts` |
+| Machine-readable pattern selection rules (§2.2, §2.3, §1.1, §16.2, §24), advisory only | `src/knowledge/selection-guidance.ts` | `knowledge-selection.test.ts` |
+| AI provider *interface* with untrusted-proposal validation; no provider implemented | `src/ai/` | `ai-provider.test.ts` |
+| Runnable end-to-end example with a non-zero exit on any failed expectation | `examples/foundation-smoke.ts` | `npm run example` |
+| Type-check and test CI on Node 22.18 (declared floor) and 22.x, plus a generated-metadata drift check | `.github/workflows/ci.yml` | GitHub Actions |
 
 Run the checks:
 
 ```bash
 npm install
-npm test        # 237 tests via node --test
-npm run typecheck
+npm run typecheck   # tsc --noEmit
+npm test            # 288 tests via node --test
+npm run example     # end-to-end smoke test of the Definition of Done
+npm run check       # typecheck + tests
 ```
 
 ### Not implemented (documented targets, not shipped behaviour)
@@ -81,7 +88,19 @@ npm run typecheck
 - **No editor, undo/redo, persistence or collaboration.**
 - **No pattern selection or art-direction generation** — pattern *metadata* is available; choosing a
   pattern remains the Runtime AI Designer's future job.
-- **No AI provider integration.** The parser is deterministic and offline by design.
+- **No AI provider integration.** The parser is deterministic and offline by design. `src/ai/` defines
+  only the *interface* a future provider must satisfy, and `NoAiProvider` is the shipped default: it
+  refuses to answer. A proposal that reaches the code is treated as untrusted and must pass
+  `validateAiBriefProposal`, which rejects a factual field that cannot be quoted from the user's own
+  text. Interface and validation are implemented and tested; **no model is called, and no AI
+  capability should be claimed from this.**
+- **No per-pattern failure guidance.** The library supplies only `Structure`, `Construction` and
+  `Best for` per entry, so `avoidWhen`, `commonMistakes`, `validationChecks`, `adaptationRules` and
+  `complexity` are absent. They are reported as missing (`PATTERN_GUIDANCE_INCOMPLETE`,
+  `unmetDecisionContractItems`) rather than invented.
+- **No JSON Schema export.** The contract is TypeScript plus a runtime validator; generating a
+  machine-readable JSON Schema is a documented future step (`docs/ARCHITECTURE.md` §9.6), not a
+  shipped artefact.
 
 Feature descriptions elsewhere in the specialist documents remain **requirements and design intent**
 unless a row above says otherwise. Do not describe the platform as producing finished designs.
@@ -122,7 +141,7 @@ unless a row above says otherwise. Do not describe the platform as producing fin
 2. **Deterministic document/render slice:** implement a minimal editable scene graph and one renderer/export path using the repository’s chosen stack (none is established here). Validate preview/export parity, bounds, asset references, and deterministic output.
 3. **Typography and localization:** implement measured text layout, font availability/fallback, script shaping and direction, overflow detection, and multilingual visual regression fixtures before claiming multilingual support.
 4. **Composition and editing:** add grid/spacing/layout constraints and a minimal editor with selection, transforms, undo/redo, and accessibility checks. Keep pattern metadata separate from computed geometry.
-5. **AI orchestration:** define validated request/response schemas, provider boundary, factual-content preservation, prompt/version logging, security/privacy limits, and deterministic fallback. Have AI return plans, never executable markup. **Partially prepared in Phase 1:** the validated plan schema, the admission gate, and the deterministic brief parser exist; no provider boundary or model call exists yet.
+5. **AI orchestration:** define validated request/response schemas, provider boundary, factual-content preservation, prompt/version logging, security/privacy limits, and deterministic fallback. Have AI return plans, never executable markup. **Partially prepared in Phase 1:** the validated plan schema, the admission gate, the deterministic brief parser, and the provider *interface* with untrusted-proposal validation exist; **no model call exists yet.**
 6. **Quality gates:** implement deterministic validators and evidence-bearing reports first; add rendered-image critique only after a reliable renderer. Add bounded revisions (default maximum three), re-render/re-evaluation, and human escalation; test critical failures and score boundaries.
 7. **Production output and hardening:** decide supported digital/print formats and color/print profiles, validate assets and licensing, add export conformance tests, performance/security testing, recovery, and release acceptance.
 
