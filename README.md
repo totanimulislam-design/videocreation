@@ -1,6 +1,12 @@
 # Creative Studio — Design Platform Documentation
 
-> A documentation foundation for a proposed AI-assisted, editable graphic-design platform. This repository currently contains design and engineering documentation only; it does **not** contain application source, tests, package metadata, or a running implementation. Treat capabilities below as requirements or roadmap items unless implementation is later verified in source.
+> A documentation foundation for a proposed AI-assisted, editable graphic-design platform, plus the
+> first implemented layer of the design engine: the **canonical design schema**, a **brief
+> intelligence parser**, and a **design-plan validator**, with 237 automated tests.
+>
+> The platform as a whole is still a proposed product. Rendering, layout computation, text
+> measurement, composition selection, the editor, export, and AI provider integration are **not
+> implemented**. See [Implementation status](#implementation-status) for the exact boundary.
 
 ## Documentation map and authority
 
@@ -13,6 +19,7 @@ Read the document for the kind of decision being made; do not treat this README 
 | `DESIGN_PATTERNS_LIBRARY.md` | Runtime AI Designer and composition implementation | Reusable compositional strategies and their selection/adaptation—not fixed templates. |
 | `DESIGN_ENGINE_SPEC.md` | Implementers of the design platform | Proposed architecture, canonical data contract, deterministic construction, rendering boundary, and implementation strategy. |
 | `DESIGN_QUALITY_METRICS.md` | Quality Engine, Runtime AI Designer, and human reviewers | Scoring, hard gates, validation procedures, critique, revision, and delivery statuses. |
+| `docs/ARCHITECTURE.md` | Implementers | What Phase 1 actually implements: layer map, technology justification, parser safety rules, validator guarantees, and known limitations. |
 
 **Precedence:** (1) the checked-out implementation and tests determine what exists; (2) `AGENTS.md` governs coding-agent behavior; (3) `DESIGN_ENGINE_SPEC.md` is authoritative for proposed architecture and shared data structures; (4) `DESIGN_SYSTEM.md` is authoritative for creative rules; (5) `DESIGN_PATTERNS_LIBRARY.md` supplies reusable structures subordinate to the brief and design system; (6) `DESIGN_QUALITY_METRICS.md` is authoritative for evaluation and acceptance. If a requirement conflicts with user content, preserve the user's factual content and flag unresolved ambiguity. If documents conflict, follow this precedence, resolve the conflict in documentation, and do not silently invent an implementation.
 
@@ -35,7 +42,49 @@ The normative end-to-end creative sequence is: **Brief Analysis → Communicatio
 
 ## Implementation status
 
-Repository inspection for this audit found only the six Markdown documents and `.gitignore` in the tracked tree. There is no source code, test suite, package manifest, or implementation to verify. Accordingly, architecture diagrams, schemas, module layouts, scoring rules, and feature descriptions in the specialist documents describe a **proposed target**, not shipped functionality. Do not use a “current implementation” claim unless source and tests are added and checked.
+### Implemented and tested (Task 03, Phase 1)
+
+Repository inspection before this phase found only documentation — no source, tests or manifest.
+Phase 1 added a dependency-free TypeScript foundation. Everything in this list is verified by
+`npm test` (237 tests) and `npm run typecheck`.
+
+| Capability | Location | Verified by |
+|---|---|---|
+| Canonical design contract: `DesignBrief`, `DesignDocument`, `CanvasConfig`, `DesignTokens`, `ArtDirection`, `CompositionPlan`, `HierarchyItem`, `TypographyToken`, `DesignAsset`, `SceneNode`, `DesignConstraints` | `src/schema/types.ts` | typecheck + validator tests |
+| Schema versioning with a supported-version window | `src/schema/version.ts` | `schema.test.ts` |
+| Explicit units (`px`/`mm`/`cm`/`in`), no implicit px↔physical conversion | `src/schema/units.ts` | `schema.test.ts` |
+| Safe-default factories | `src/schema/factories.ts` | `schema.test.ts` |
+| Natural-language brief → structured `DesignBrief` (English, Bengali, Arabic, Urdu; RTL and mixed-script detection) | `src/brief/` | `brief-parser.test.ts` |
+| Explicit evidence, assumptions, open questions and conflicts for every brief field | `src/brief/types.ts` | `brief-parser.test.ts` |
+| Design-plan validation with stable machine-readable error/warning codes | `src/validation/` | `plan-validator.test.ts` |
+| Pattern metadata compiled from `DESIGN_PATTERNS_LIBRARY.md` (100 patterns) with a drift test | `tools/`, `src/knowledge/` | `pattern-integration.test.ts` |
+| Stable identifier catalogues from the design documents | `src/knowledge/ids.ts` | `pattern-integration.test.ts` |
+| Admission gate so invalid plans cannot proceed to a renderer | `src/validation/design-plan.ts` | `pipeline.test.ts` |
+
+Run the checks:
+
+```bash
+npm install
+npm test        # 237 tests via node --test
+npm run typecheck
+```
+
+### Not implemented (documented targets, not shipped behaviour)
+
+- **No rendering, SVG generation, PNG/JPEG/PDF export.**
+- **No layout or grid computation** — `CompositionPlan` is validated as *intent*; geometry is not
+  calculated.
+- **No text measurement, shaping, line breaking or overflow detection.** Only script/direction
+  *detection* exists. Brief-time headline capacity is a character-count *warning*, explicitly not
+  measurement.
+- **No collision detection, quality scoring, critique or revision.**
+- **No editor, undo/redo, persistence or collaboration.**
+- **No pattern selection or art-direction generation** — pattern *metadata* is available; choosing a
+  pattern remains the Runtime AI Designer's future job.
+- **No AI provider integration.** The parser is deterministic and offline by design.
+
+Feature descriptions elsewhere in the specialist documents remain **requirements and design intent**
+unless a row above says otherwise. Do not describe the platform as producing finished designs.
 
 ## Audit report — Task 01
 
@@ -69,11 +118,11 @@ Repository inspection for this audit found only the six Markdown documents and `
 
 ### Recommended implementation roadmap
 
-1. **Foundation and scope:** select an initial use case and supported output; adopt the canonical document/brief/plan schemas from the Engine Spec, define units, IDs, defaults, validation errors, versioning, and migrations. Add schema and factory tests before UI or AI work.
+1. ~~**Foundation and scope:** adopt the canonical document/brief/plan schemas from the Engine Spec, define units, IDs, defaults, validation errors, versioning, and migrations; add schema and factory tests before UI or AI work.~~ **Done in Phase 1** — implemented in `src/schema/` and `src/validation/`; see [Implementation status](#implementation-status) and `docs/ARCHITECTURE.md`. Schema *migrations* are not yet written; only the supported-version window is enforced.
 2. **Deterministic document/render slice:** implement a minimal editable scene graph and one renderer/export path using the repository’s chosen stack (none is established here). Validate preview/export parity, bounds, asset references, and deterministic output.
 3. **Typography and localization:** implement measured text layout, font availability/fallback, script shaping and direction, overflow detection, and multilingual visual regression fixtures before claiming multilingual support.
 4. **Composition and editing:** add grid/spacing/layout constraints and a minimal editor with selection, transforms, undo/redo, and accessibility checks. Keep pattern metadata separate from computed geometry.
-5. **AI orchestration:** define validated request/response schemas, provider boundary, factual-content preservation, prompt/version logging, security/privacy limits, and deterministic fallback. Have AI return plans, never executable markup.
+5. **AI orchestration:** define validated request/response schemas, provider boundary, factual-content preservation, prompt/version logging, security/privacy limits, and deterministic fallback. Have AI return plans, never executable markup. **Partially prepared in Phase 1:** the validated plan schema, the admission gate, and the deterministic brief parser exist; no provider boundary or model call exists yet.
 6. **Quality gates:** implement deterministic validators and evidence-bearing reports first; add rendered-image critique only after a reliable renderer. Add bounded revisions (default maximum three), re-render/re-evaluation, and human escalation; test critical failures and score boundaries.
 7. **Production output and hardening:** decide supported digital/print formats and color/print profiles, validate assets and licensing, add export conformance tests, performance/security testing, recovery, and release acceptance.
 

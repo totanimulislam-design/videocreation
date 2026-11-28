@@ -125,7 +125,7 @@ The system must avoid creating one monolithic AI-generated layout function.
 
 # 3. Design Document Data Architecture
 
-Every design must be represented by a structured document. The types in this section are the **single normative contract** for brief, art direction, composition plan, document, canvas, and element identities used by all other documents. Other documents may describe concepts in prose, but must not define competing wire shapes. TypeScript snippets are proposed interfaces pending a machine-readable schema and validation tests.
+Every design must be represented by a structured document. The types in this section are the **single normative contract** for brief, art direction, composition plan, document, canvas, and element identities used by all other documents. Other documents may describe concepts in prose, but must not define competing wire shapes. TypeScript snippets below are the normative wire shapes. They are implemented in `src/schema/types.ts` (Task 03, Phase 1) and enforced at runtime by `validateDesignPlan` in `src/validation/design-plan.ts`; see §3.4 for the implemented-vs-documented delta and the additions made to this contract.
 
 The design document is the source of truth for the editor, renderer, and export system. IDs are stable within a document and references resolve to declared objects/assets. Canvas `width`, `height`, positions, dimensions, spacing, and vector measurements use `CanvasConfig.unit`; physical print conversion uses the declared DPI/profile, never an implicit pixel-to-mm conversion. Stage outputs must be validated before the next stage accepts them.
 
@@ -271,6 +271,45 @@ interface ShadowToken {
 ```
 
 Design tokens should make consistent styling easier without forcing every design to look identical. Numeric token dimensions use the canvas unit unless a specific renderer property explicitly defines another unit.
+
+---
+
+### 3.4 Implementation notes (Task 03, Phase 1)
+
+The contract above is implemented as TypeScript in `src/schema/types.ts`, versioned by
+`src/schema/version.ts`, unit-checked by `src/schema/units.ts`, and validated at runtime by
+`src/validation/design-plan.ts`. `src/schema/types.ts` is the only wire-shape module; every other
+module imports it.
+
+**Authority of runtime validation.** TypeScript types are erased at runtime and therefore cannot
+validate untrusted AI output. Validation is implemented as structural reading over `unknown`
+(`src/validation/primitives.ts`), not as generic type assertions. A rejected plan exposes no value
+at all.
+
+**Additions made to the shapes in §3.1–§3.3** (additive, non-breaking, required for the invariants
+already stated in this document):
+
+| Addition | Where | Why it was necessary |
+|---|---|---|
+| `unit` is **required** on `CanvasConfig` | §3.2 | §3.1 already says every document-scoped length uses `CanvasConfig.unit`; an optional unit would permit dimensionless geometry. |
+| Collection fields are `readonly` and frozen | §3.1, §3.6 | A validated plan must not be mutable afterwards, otherwise the validator's verdict stops being meaningful. Wire format is unchanged. |
+| `DesignConstraints` alias | §3.6 | The task brief names `DesignConstraints`; the spec names `CompositionConstraints`. One alias prevents two competing constraint shapes. |
+| `DesignPlan = DesignDocument` | §3.1 | `AI_DESIGN_INTELLIGENCE.md` §11 defines `AI_DesignPlan extends DesignDocument`. Validating the document therefore validates the plan core; no parallel plan schema was created. |
+| `HierarchyItem.contentId` resolution list | §6.1 | Implemented as stated: `headline`, `subheadline`, `body/<n>`, `details/<n>`, `cta`, or a declared slot. Unresolvable IDs are a hard error. |
+
+**Field units clarified during implementation** (resolving §3.1's "explicit units" requirement):
+
+- `TypographyToken.fontSize` and `letterSpacing` use the **document's canvas unit**, consistent with
+  §3.3's "numeric token dimensions use the canvas unit".
+- `TypographyToken.lineHeight` is a **multiple of `fontSize`**, not a length.
+- `opacity`, focal `strength`, gradient stop `offset`, gradient `center` and image `crop` are
+  **normalized `0..1`**, never canvas units.
+- `transform.rotation` is **degrees**.
+- Colors are sRGB hex only (`#RGB`, `#RGBA`, `#RRGGBB`, `#RRGGBBAA`). Named CSS colors are rejected
+  during validation so a renderer and a contrast check cannot disagree about a color's meaning.
+
+**Explicit non-implementation.** Phase 1 does not compute geometry, measure text, detect collisions,
+render, export, or call any model. Pattern metadata is present; pattern *selection* and layout are not.
 
 ---
 
