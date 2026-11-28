@@ -139,6 +139,28 @@ export {
 } from './knowledge/patterns.ts';
 export type { PatternRecord, PatternMetadataCompleteness, RecommendedCombination } from './knowledge/patterns.ts';
 
+export {
+  SELECTION_ROUTING,
+  PATTERN_DECISION_CONTRACT,
+  SELECTION_REQUIREMENTS,
+  COMBINATION_RESTRICTIONS,
+  SELECTION_CHECKLIST,
+  assessPatternSelection,
+  derivePatternCharacteristics,
+  selectionGuidanceFor,
+} from './knowledge/selection-guidance.ts';
+export type {
+  CombinationRestriction,
+  CombinationRestrictionId,
+  DerivedPatternCharacteristics,
+  GuidanceProvenance,
+  OrientationFit,
+  PatternSelectionAssessment,
+  PatternSelectionRule,
+  SelectionRoutingRule,
+  AssessSelectionOptions,
+} from './knowledge/selection-guidance.ts';
+
 // ---- Brief intelligence ---------------------------------------------------
 export { parseDesignBrief, parseDesignBriefOrThrow, BriefParseError } from './brief/parse.ts';
 export { estimateHeadlineCapacity } from './brief/capacity.ts';
@@ -163,6 +185,27 @@ export type {
 export { validateDesignPlan, assertValidDesignPlan, validateDesignBriefDocument, deriveContentSlots, DesignPlanValidationError } from './validation/design-plan.ts';
 export type { DesignPlanValidationReport, ValidatePlanOptions } from './validation/design-plan.ts';
 export { validateDesignDocument } from './validation/document.ts';
+
+// ---- AI provider boundary (interface only; no provider is implemented) -----
+export {
+  NoAiProvider,
+  NoAiProviderError,
+  isNoAiProviderError,
+  PROPOSAL_FIELDS,
+} from './ai/types.ts';
+export type {
+  AiBriefProvider,
+  AiBriefProposal,
+  AiBriefRequest,
+  AiProviderCallOptions,
+  FieldProposal,
+  ProposalEvidenceKind,
+  ProposalField,
+} from './ai/types.ts';
+export { validateAiBriefProposal } from './ai/proposal.ts';
+export type { AiProposalValidationReport, ValidateProposalOptions } from './ai/proposal.ts';
+export { requestBriefProposal, AiProviderTimeoutError, DEFAULT_PROVIDER_TIMEOUT_MS } from './ai/request.ts';
+export type { AiProposalOutcome, RequestProposalOptions } from './ai/request.ts';
 
 // ---- Diagnostics ----------------------------------------------------------
 export { CODES, DiagnosticBag, formatDiagnostic, formatDiagnostics, path as diagnosticPath, toResult } from './core/diagnostics.ts';
