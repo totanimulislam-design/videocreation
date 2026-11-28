@@ -1,0 +1,60 @@
+name: CI
+
+# Type-check and test the design-intelligence foundation.
+#
+# There is no build step: the sources are standard ES modules executed directly
+# by Node's native TypeScript type stripping (`--experimental-strip-types`), which
+# requires Node >= 22.18. The matrix therefore pins the minimum supported release
+# and the current LTS line, so a regression in either is caught.
+#
+# No secrets, no network calls beyond dependency installation, no deployment.
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Cancel superseded runs on the same ref to keep queue time low.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Node ${{ matrix.node }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 22.18.0 is the declared `engines.node` floor (type stripping on by default).
+        node: ['22.18.0', '22.x']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Verify generated pattern metadata is in sync with the library
+        # Regenerates from DESIGN_PATTERNS_LIBRARY.md and fails if the checked-in
+        # module differs, so documentation and code cannot drift unnoticed.
+        run: |
+          npm run generate:knowledge
+          git diff --exit-code -- src/knowledge/generated/patterns.generated.ts

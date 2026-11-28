@@ -15,6 +15,7 @@
     "test": "node --experimental-strip-types --test \"tests/**/*.test.ts\"",
     "typecheck": "tsc --noEmit",
     "check": "npm run typecheck && npm run test",
+    "example": "node --experimental-strip-types examples/foundation-smoke.ts",
     "generate:knowledge": "node --experimental-strip-types tools/generate-knowledge.ts"
   },
   "devDependencies": {
