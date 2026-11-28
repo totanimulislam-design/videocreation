@@ -235,3 +235,113 @@ export {
   isRtlScript,
 } from './core/script.ts';
 export type { ScriptId, TextDirection as ScriptTextDirection } from './core/script.ts';
+
+// ---- Typography engine (Task 04) ------------------------------------------
+//
+// Real shaping and measurement through HarfBuzz WebAssembly. The WASM module is
+// loaded lazily by `createTypographyEngine`, so importing this entry point and
+// validating a document never instantiates it. See `docs/TYPOGRAPHY.md`.
+
+export { createTypographyEngine, loadHarfBuzz } from './typography/engine.ts';
+export type { TypographyEngine } from './typography/engine.ts';
+
+export { layoutText, measureText, shapeText, wrapText, splitParagraphs, resolveFontWeight, invalidLayout } from './typography/layout.ts';
+export type { LayoutContext, ParagraphRange } from './typography/layout.ts';
+export { fitText, layoutFits } from './typography/fit.ts';
+export { detectOverflow, widestLine } from './typography/overflow.ts';
+export type { OverflowInput, OverflowResult } from './typography/overflow.ts';
+export { wrapParagraph } from './typography/wrap.ts';
+export type { WrappedLine, WrappedParagraph, WrapParagraphInput } from './typography/wrap.ts';
+
+export {
+  FontRegistry,
+  GENERIC_FAMILIES,
+  coverageCodepoints,
+  duplicateFontDiagnostic,
+  familyKey,
+  isGenericFamilyName,
+  parseFontStack,
+} from './typography/font-registry.ts';
+export type { FontCandidate, FontRegistryOptions, RegistryLookupOptions } from './typography/font-registry.ts';
+export { DEFAULT_FONT_WEIGHT, fontIdFor, loadFont, measureCoverage } from './typography/font-record.ts';
+export type { HarfBuzzApi, LoadFontResult, LoadedFont } from './typography/font-record.ts';
+export {
+  MAX_FONT_BYTES,
+  decodeWoffToSfnt,
+  detectFontFormat,
+  loadFontSource,
+  toSfntBytes,
+} from './typography/font-format.ts';
+export type { DecodedFont, FontLoadIssue, LoadedFontBytes } from './typography/font-format.ts';
+
+export {
+  SCRIPT_CAPABILITIES,
+  classifyCodePoint,
+  isSupportedScript,
+  resolveBaseDirection,
+  scriptDirection,
+  scriptTag,
+  segmentByScript,
+  unsupportedScriptCodePoints,
+} from './typography/script-runs.ts';
+export type { ScriptSegment } from './typography/script-runs.ts';
+
+export { ShapeCache, shapeRun, shapeRunRaw, shapingCacheKey, toFeatures } from './typography/shaper.ts';
+export type { RawShapedGlyph, RawShapedRun, ShapeOptions, ShapingContext } from './typography/shaper.ts';
+export { advanceBefore, buildRunMeasure, buildShapedRun, clusterSpanEnd } from './typography/measure.ts';
+export type { BuildRunInput, RunMeasure } from './typography/measure.ts';
+export {
+  allowsBreakBetween,
+  breakOpportunities,
+  classifyLineBreakChar,
+  graphemeSegments,
+  isMandatoryBreak,
+  isWhitespaceGrapheme,
+} from './typography/line-break.ts';
+export type { BreakOpportunity, GraphemeSegment, LineBreakClass } from './typography/line-break.ts';
+
+export type {
+  FitStatus,
+  FitTextRequest,
+  FontFormat,
+  FontLicensing,
+  FontMetadata,
+  FontRegistrationResult,
+  FontRequest,
+  FontResolveResult,
+  FontResolution,
+  FontResolutionKind,
+  FontResolutionStatus,
+  FontShapingCapabilities,
+  FontSource,
+  FontSourceKind,
+  FontStyle,
+  FontVerticalMetrics,
+  LayoutSceneTextRequest,
+  LayoutTextRequest,
+  MeasureTextResult,
+  OverflowPolicy,
+  OverflowReport,
+  OverflowWrap,
+  RegisterFontInput,
+  ResolvedFontInfo,
+  ResolvedTypographyMetrics,
+  RunScript,
+  ScriptSupportReport,
+  ShapedGlyph,
+  ShapedText,
+  ShapedTextRun,
+  SupportedScript,
+  TextBoxConstraint,
+  TextFitResult,
+  TextLayoutResult,
+  TextLine,
+  TextLineRun,
+  TextOverflowRequest,
+  TextOverflowResult,
+  TextRequest,
+  TypographyCacheStats,
+  TypographyEngineOptions,
+  WrapTextRequest,
+  WrapTextResult,
+} from './typography/types.ts';

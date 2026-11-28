@@ -785,6 +785,13 @@ flowchart TD
     H --> I[Typography Rendering]
 ```
 
+> **Implementation status (Task 04).** Stages A–H exist in `src/typography/` and are tested; stage I
+> (rendering) is deliberately out of scope. Concretely: script detection and per-run splitting
+> (`script-runs.ts`), font selection with measured coverage and reported fallback
+> (`font-registry.ts`), HarfBuzz shaping (`shaper.ts`), advance/baseline measurement (`measure.ts`),
+> Unicode line breaking (`line-break.ts`, `wrap.ts`), line-box layout with bidi run ordering
+> (`layout.ts`), and fitting (`fit.ts`). See `docs/TYPOGRAPHY.md`.
+
 ## 9.2 Typography Schema
 
 ```ts
@@ -823,6 +830,12 @@ Use a suitable text measurement and shaping system.
 
 Do not estimate text dimensions from character count alone.
 
+> **Implementation status (Task 04).** All of the above are reported by
+> `layoutText`/`measureText` from HarfBuzz advances: `width`, `height`, `lineCount`, per-line
+> `baseline`/`ascent`/`descent`, resolved font metrics, available/consumed width and height, and an
+> `overflow` report. `src/brief/capacity.ts` keeps its character-count *screening* estimate for
+> brief analysis and is explicitly labelled as not being measurement.
+
 ## 9.4 Text Fitting
 
 When text exceeds the available space, use this priority:
@@ -837,6 +850,13 @@ When text exceeds the available space, use this priority:
 Never silently remove important text.
 
 Do not shrink all text until it becomes unreadable.
+
+> **Implementation status (Task 04).** Step 5 (reduce font size within acceptable limits) is
+> implemented as a measured bisection in `fitText`, bounded by `minFontSize`; it never goes below
+> that bound and returns `cannot-fit` with evidence instead. Step 1 (recalculate line breaks) is part
+> of every candidate layout. Steps 2–4 and 6 belong to the future layout/composition engine and are
+> not implemented. Policies `clip` and `fail` let a caller keep the requested size explicitly, with
+> overflow reported either way.
 
 ## 9.5 Font Selection
 
@@ -874,6 +894,15 @@ Important technical requirements:
 Use a suitable shaping engine when necessary, such as HarfBuzz, or a browser rendering environment with verified complex-script support.
 
 Do not manually reverse Arabic or Bengali strings to simulate correct rendering.
+
+> **Implementation status (Task 04).** English, Bengali, Arabic and Urdu are shaped by HarfBuzz
+> with script/direction/language selection and OpenType features, and mixed-language text is split
+> into per-script runs. Script-specific line breaking covers the supported scripts (spaces, ZWSP,
+> hyphens, the Bengali danda, closing/opening punctuation, number protection); it is a documented
+> UAX #14 subset without hyphenation. Bidi is a level-1 approximation (per-run direction + base
+> direction ordering) and mixed direction is reported with `TEXT_BIDI_APPROXIMATED`; UAX #9
+> embedding levels and isolates are not implemented. Strings are never reversed. Nastaliq style
+> needs a Nastaliq font and is warned about when absent.
 
 ## 9.7 Typography Hierarchy
 
@@ -1941,6 +1970,20 @@ Implement:
 - Text overflow detection
 
 **Completion target:** Produce accurately measured, readable text layouts.
+
+**Status (Task 04):** implemented for measurement and layout, not for rendering.
+
+| Item | Status |
+|---|---|
+| Font management | **Implemented** — registration (bytes/path/data URI), TTF/OTF/WOFF 1.0, measured metadata, weight/style matching, fallback chains, family stacks, generic-family mapping. WOFF2/.ttc rejected explicitly. |
+| Text measurement | **Implemented** — HarfBuzz shaping and advances; width/height/line count/baselines; `letterSpacing` per grapheme, `wordSpacing` per space. |
+| Text wrapping | **Implemented** — Unicode-aware breaks over `Intl.Segmenter` graphemes, cluster-safe emergency breaking on request, hard newlines, `maxLines`. |
+| Typography hierarchy | **Not implemented in this layer** — the canonical `TypographyScale` (display/heading/subheading/body/caption) already exists; turning roles into measured sizes is future layout work. |
+| Multilingual rendering | **Partial** — shaping, measurement and RTL run ordering for Latin/Bengali/Arabic/Urdu are implemented and tested; *rendering* is out of scope; bidi is level-1 only; Nastaliq style is font-dependent. |
+| Text overflow detection | **Implemented** — `overflow` report plus `TEXT_OVERFLOW_HORIZONTAL`/`VERTICAL`/`TEXT_LINE_COUNT_EXCEEDED`/`TEXT_UNBREAKABLE_OVERFLOW`/`GLYPH_MISSING` diagnostics, and fitting policies. |
+
+Tests: 154 new tests in `tests/typography-*.test.ts`; full suite 442 tests / 77 suites. Details and
+limitations: `docs/TYPOGRAPHY.md`.
 
 ## Phase 4 — Advanced Graphics
 
