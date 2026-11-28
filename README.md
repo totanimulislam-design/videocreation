@@ -1,12 +1,14 @@
 # Creative Studio — Design Platform Documentation
 
 > A documentation foundation for a proposed AI-assisted, editable graphic-design platform, plus the
-> first implemented layer of the design engine: the **canonical design schema**, a **brief
-> intelligence parser**, and a **design-plan validator**, with 288 automated tests and a CI workflow.
+> implemented first layers of the design engine: the **canonical design schema**, a **brief
+> intelligence parser**, a **design-plan validator**, and a **typography measurement and text layout
+> engine** (HarfBuzz shaping, font management, Unicode wrapping, fitting, overflow diagnostics), with
+> 442 automated tests and a CI workflow.
 >
-> The platform as a whole is still a proposed product. Rendering, layout computation, text
-> measurement, composition selection, the editor, export, and AI provider integration are **not
-> implemented**. See [Implementation status](#implementation-status) for the exact boundary.
+> The platform as a whole is still a proposed product. Rendering, scene/layout composition, the
+> editor, export, and AI provider integration are **not implemented**. See
+> [Implementation status](#implementation-status) for the exact boundary.
 
 ## Documentation map and authority
 
@@ -19,7 +21,8 @@ Read the document for the kind of decision being made; do not treat this README 
 | `DESIGN_PATTERNS_LIBRARY.md` | Runtime AI Designer and composition implementation | Reusable compositional strategies and their selection/adaptation—not fixed templates. |
 | `DESIGN_ENGINE_SPEC.md` | Implementers of the design platform | Proposed architecture, canonical data contract, deterministic construction, rendering boundary, and implementation strategy. |
 | `DESIGN_QUALITY_METRICS.md` | Quality Engine, Runtime AI Designer, and human reviewers | Scoring, hard gates, validation procedures, critique, revision, and delivery statuses. |
-| `docs/ARCHITECTURE.md` | Implementers | What Phase 1 actually implements: layer map, technology justification, parser safety rules, validator guarantees, and known limitations. |
+| `docs/ARCHITECTURE.md` | Implementers | What Phases 1 and 3 actually implement: layer map, technology justification, parser safety rules, validator guarantees, typography architecture, and known limitations. |
+| `docs/TYPOGRAPHY.md` | Implementers and reviewers | The typography engine: shaping and measurement semantics, font/fallback rules, wrapping and fitting policies, diagnostic codes, script evidence, fixture provenance/licensing, and limits. |
 | `IMPLEMENTATION_REPORT.md` | Reviewers of Task 03-R | What this task added, the commands actually run and their results, and the remaining limitations. |
 
 **Precedence:** (1) the checked-out implementation and tests determine what exists; (2) `AGENTS.md` governs coding-agent behavior; (3) `DESIGN_ENGINE_SPEC.md` is authoritative for proposed architecture and shared data structures; (4) `DESIGN_SYSTEM.md` is authoritative for creative rules; (5) `DESIGN_PATTERNS_LIBRARY.md` supplies reusable structures subordinate to the brief and design system; (6) `DESIGN_QUALITY_METRICS.md` is authoritative for evaluation and acceptance. If a requirement conflicts with user content, preserve the user's factual content and flag unresolved ambiguity. If documents conflict, follow this precedence, resolve the conflict in documentation, and do not silently invent an implementation.
@@ -43,11 +46,14 @@ The normative end-to-end creative sequence is: **Brief Analysis → Communicatio
 
 ## Implementation status
 
-### Implemented and tested (Task 03, Phase 1)
+### Implemented and tested (Task 03 Phase 1, Task 04 Phase 3 typography)
 
-Repository inspection before this phase found only documentation — no source, tests or manifest.
-Phase 1 added a dependency-free TypeScript foundation. Everything in this list is verified by
-`npm test` (237 tests) and `npm run typecheck`.
+Repository inspection before Phase 1 found only documentation — no source, tests or manifest.
+Phase 1 added the TypeScript foundation; Task 04 added the typography engine (one runtime
+dependency, `harfbuzzjs`). Everything in these lists is verified by `npm test` (442 tests) and
+`npm run typecheck`.
+
+Foundation (Task 03, Phase 1):
 
 | Capability | Location | Verified by |
 |---|---|---|
@@ -66,12 +72,28 @@ Phase 1 added a dependency-free TypeScript foundation. Everything in this list i
 | Runnable end-to-end example with a non-zero exit on any failed expectation | `examples/foundation-smoke.ts` | `npm run example` |
 | Type-check and test CI on Node 22.18 (declared floor) and 22.x, plus a generated-metadata drift check | `.github/workflows/ci.yml` | GitHub Actions |
 
+Typography engine (Task 04, Phase 3 — measurement and layout only):
+
+| Capability | Location | Verified by |
+|---|---|---|
+| Font registration from bytes/paths/data URIs, TTF/OTF/WOFF 1.0, metadata measured from the font (upem, extents, cap/x-height, GSUB/GPOS tags, `cmap` coverage); WOFF2 and `.ttc` rejected explicitly | `src/typography/font-*.ts` | `typography-fonts.test.ts` |
+| Font resolution with weights/styles, family stacks, generic-family mapping, and *reported* fallback (never silent substitution) | `src/typography/font-registry.ts` | `typography-fonts.test.ts`, `typography-overflow.test.ts` |
+| Real HarfBuzz shaping: Latin kerning/ligatures, Bengali conjuncts (`ক্ষ`), kar/phala/reph, Arabic contextual joining and diacritics, Urdu Nastaliq, mixed-script runs | `src/typography/shaper.ts`, `script-runs.ts` | `typography-shaping.test.ts` |
+| Advance-based measurement: width/height, line boxes, baselines, `letterSpacing` per grapheme, `wordSpacing` per space, units | `src/typography/measure.ts`, `layout.ts` | `typography-measure.test.ts` |
+| Unicode-aware wrapping: `Intl.Segmenter` graphemes, UAX #14 subset, ZWSP/danda/hyphen breaks, number protection, opt-in cluster-safe emergency breaking, hard newlines | `src/typography/line-break.ts`, `wrap.ts` | `typography-wrap.test.ts` |
+| Fitting by measured bisection (`shrink`/`clip`/`fail`) bounded by `minFontSize`, with `maxWidth`/`maxHeight`/`maxLines` | `src/typography/fit.ts` | `typography-fit.test.ts` |
+| Structured overflow report and stable `TEXT_*`/`FONT_*`/`GLYPH_*`/`SHAPING_*` diagnostics | `src/typography/overflow.ts` | `typography-overflow.test.ts` |
+| Canonical layout output for a future renderer, including per-line visual run order for RTL/mixed text, plus a scene-node entry point (`layoutSceneText`) | `src/typography/layout.ts`, `engine.ts` | `typography-overflow.test.ts` |
+| Additive-only public API and unchanged foundation behaviour | `src/index.ts`, `src/validation/` | `typography-regression.test.ts` |
+
+Full reference and limitations: `docs/TYPOGRAPHY.md`.
+
 Run the checks:
 
 ```bash
 npm install
 npm run typecheck   # tsc --noEmit
-npm test            # 288 tests via node --test
+npm test            # 442 tests via node --test
 npm run example     # end-to-end smoke test of the Definition of Done
 npm run check       # typecheck + tests
 ```
@@ -81,9 +103,14 @@ npm run check       # typecheck + tests
 - **No rendering, SVG generation, PNG/JPEG/PDF export.**
 - **No layout or grid computation** — `CompositionPlan` is validated as *intent*; geometry is not
   calculated.
-- **No text measurement, shaping, line breaking or overflow detection.** Only script/direction
-  *detection* exists. Brief-time headline capacity is a character-count *warning*, explicitly not
-  measurement.
+- **No rendering of text, and no scene geometry engine.** Text is shaped, measured, wrapped and
+  fitted (Task 04), and the results carry glyph ids, clusters, advances, line boxes and baselines,
+  but no glyph outlines or draw calls are produced. Brief-time headline capacity remains a
+  character-count *warning*, explicitly not measurement.
+- **Typography limits.** Bidi is a level-1 approximation (no embedding levels or isolates); line
+  breaking is a documented UAX #14 subset without hyphenation; WOFF2, `.ttc`, variable-font axes,
+  colour fonts and vertical writing modes are unsupported. Urdu Nastaliq style depends on the
+  supplied font and is warned about, not synthesised.
 - **No collision detection, quality scoring, critique or revision.**
 - **No editor, undo/redo, persistence or collaboration.**
 - **No pattern selection or art-direction generation** — pattern *metadata* is available; choosing a
@@ -139,7 +166,7 @@ unless a row above says otherwise. Do not describe the platform as producing fin
 
 1. ~~**Foundation and scope:** adopt the canonical document/brief/plan schemas from the Engine Spec, define units, IDs, defaults, validation errors, versioning, and migrations; add schema and factory tests before UI or AI work.~~ **Done in Phase 1** — implemented in `src/schema/` and `src/validation/`; see [Implementation status](#implementation-status) and `docs/ARCHITECTURE.md`. Schema *migrations* are not yet written; only the supported-version window is enforced.
 2. **Deterministic document/render slice:** implement a minimal editable scene graph and one renderer/export path using the repository’s chosen stack (none is established here). Validate preview/export parity, bounds, asset references, and deterministic output.
-3. **Typography and localization:** implement measured text layout, font availability/fallback, script shaping and direction, overflow detection, and multilingual visual regression fixtures before claiming multilingual support.
+3. ~~**Typography and localization:** implement measured text layout, font availability/fallback, script shaping and direction, overflow detection.~~ **Measured text layout, font fallback, shaping, RTL/mixed-run ordering, overflow detection and fitting are done in Task 04** (`src/typography/`, `docs/TYPOGRAPHY.md`). Still open: rendering, full UAX #9 bidi, hyphenation, vertical/colour/variable fonts, and multilingual **visual regression fixtures** (none can exist before a renderer).
 4. **Composition and editing:** add grid/spacing/layout constraints and a minimal editor with selection, transforms, undo/redo, and accessibility checks. Keep pattern metadata separate from computed geometry.
 5. **AI orchestration:** define validated request/response schemas, provider boundary, factual-content preservation, prompt/version logging, security/privacy limits, and deterministic fallback. Have AI return plans, never executable markup. **Partially prepared in Phase 1:** the validated plan schema, the admission gate, the deterministic brief parser, and the provider *interface* with untrusted-proposal validation exist; **no model call exists yet.**
 6. **Quality gates:** implement deterministic validators and evidence-bearing reports first; add rendered-image critique only after a reliable renderer. Add bounded revisions (default maximum three), re-render/re-evaluation, and human escalation; test critical failures and score boundaries.

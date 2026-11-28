@@ -1,10 +1,10 @@
-# Architecture — Design Intelligence Foundation (Task 03, Phase 1)
+# Architecture — Design Intelligence Foundation (Tasks 03–04, Phases 1 and 3)
 
-> **Scope.** This document describes the foundation implemented in this repository: the canonical
-> design schema, the brief intelligence parser, the design-plan validator, the pattern metadata and
-> selection-guidance integration, the AI provider *interface*, and their tests. It does **not**
-> describe a renderer, editor, layout engine, or AI provider integration — none of those exist yet,
-> and no model is called.
+> **Scope.** This document describes what is implemented in this repository: the canonical design
+> schema, the brief intelligence parser, the design-plan validator, the pattern metadata and
+> selection-guidance integration, the AI provider *interface*, the typography measurement and text
+> layout engine, and their tests. It does **not** describe a renderer, editor, scene composer or AI
+> provider integration — none of those exist yet, and no model is called.
 
 ## 1. What was here before
 
@@ -32,7 +32,7 @@ The task required not assuming a stack. The chosen stack is deliberately minimal
 | Choice | Rationale |
 |---|---|
 | **TypeScript** | `DESIGN_ENGINE_SPEC.md` §3 expresses the canonical contract as TypeScript interfaces. Implementing in the same language keeps one contract instead of a re-typed copy. |
-| **No runtime dependencies** | The foundation is pure data validation and text analysis. Zero runtime dependencies means zero supply-chain surface, no version drift, and no bundler assumptions before the editor/renderer stack is chosen. |
+| **One runtime dependency: `harfbuzzjs@1.6.4`** (Task 04) | Real OpenType shaping and metrics cannot be fabricated from character counts. HarfBuzz is the reference shaping engine, ships as WASM (1.6.4), is MIT-licensed, and is loaded lazily so importing the foundation does not instantiate it. Everything else stays dependency-free: no font library, no Canvas, no layout library. |
 | **Node.js ≥ 22.18 built-in test runner** (`node --test`) | Tests run with no test framework dependency. Node's runner is stable, supports `describe`/`it`, and produces TAP output. |
 | **Node.js native TypeScript type stripping** (`--experimental-strip-types`) | Runs the `.ts` sources directly with no build step and no transpiler. The code was written to be erasable-syntax-only so this works (`erasableSyntaxOnly` is enforced in `tsconfig.json`). |
 | **TypeScript only as a dev dependency** | Used for `tsc --noEmit` type checking. Not present at runtime. |
@@ -75,6 +75,20 @@ src/
 │   ├── scene.ts         scene graph: IDs, references, node types, bounds policy
 │   ├── composition.ts   patterns, focal point, hierarchy, zones, grid, constraints
 │   └── primitives.ts    typed readers over `unknown` that record diagnostics
+├── typography/      Task 04: shaping, measurement, wrapping, fitting (Node-only)
+│   ├── types.ts         font/text/layout result shapes
+│   ├── font-format.ts   container detection, WOFF 1.0 → sfnt, size limits
+│   ├── font-record.ts   metadata, cmap coverage, id/fingerprint
+│   ├── font-registry.ts registration, resolution, fallback, generic families, stacks
+│   ├── shaper.ts        HarfBuzz buffer/features/cache
+│   ├── script-runs.ts   script segmentation, base direction (level-1 bidi)
+│   ├── line-break.ts    grapheme segmentation + UAX #14 subset
+│   ├── measure.ts       glyph advances, cluster spans, letter/word spacing
+│   ├── wrap.ts          greedy wrapping, emergency breaks, cluster safety
+│   ├── overflow.ts      overflow report and TEXT_* diagnostics
+│   ├── layout.ts        the single pipeline: shape → wrap → line boxes → diagnostics
+│   ├── fit.ts           bisection fitting (shrink/clip/fail)
+│   └── engine.ts        TypographyEngine facade, caches, lazy HarfBuzz
 └── core/            shared primitives
     ├── diagnostics.ts   stable codes, severities, result envelope
     ├── ids.ts           ID validation/generation
@@ -91,14 +105,23 @@ examples/
 
 tests/
 ├── fixtures/plans.ts       hand-authored valid plan fixtures (digital, print, Arabic, mixed)
-├── brief-parser.test.ts          35 tests
-├── plan-validator.test.ts       104 tests
+├── fixtures/fonts.ts       typography fixture helpers (fonts, tokens, WOFF builders)
+├── fixtures/fonts/         5 OFL Noto fonts + OFL.txt
+├── brief-parser.test.ts          36 tests
+├── plan-validator.test.ts       103 tests
 ├── pattern-integration.test.ts   19 tests
 ├── knowledge-selection.test.ts  19 tests
 ├── ai-provider.test.ts          32 tests
-├── schema.test.ts                29 tests
-├── pipeline.test.ts              15 tests
-└── robustness.test.ts            35 tests
+├── schema.test.ts               29 tests
+├── pipeline.test.ts             15 tests
+├── robustness.test.ts           35 tests
+├── typography-fonts.test.ts      31 tests
+├── typography-shaping.test.ts    33 tests
+├── typography-measure.test.ts    18 tests
+├── typography-wrap.test.ts       19 tests
+├── typography-fit.test.ts        20 tests
+├── typography-overflow.test.ts   21 tests
+└── typography-regression.test.ts 12 tests
 ```
 
 ### Dependency direction
@@ -107,7 +130,13 @@ tests/
 core  ←  schema  ←  knowledge  ←  brief
                        ↑            ↑
                   validation  ──────┘
+
+typography → schema (TypographyToken, units, limits) + core/diagnostics
+typography ↛ validation / brief / knowledge   (no reverse dependency)
 ```
+
+`typography/` is leaf-side: it reads the canonical token and diagnostics but nothing in the
+foundation imports it, so the validation pipeline still runs without HarfBuzz or fonts.
 
 `core` and `schema` depend on nothing else. `validation` may depend on `knowledge` (to resolve
 pattern IDs) and on `schema`, but never on `brief`'s parsing logic — the validator accepts a
@@ -239,8 +268,9 @@ exist throws at load time.
 
 ## 8. Testing
 
-`npm test` runs 288 tests across eight files using Node's built-in runner. Coverage includes every
-scenario the task required:
+`npm test` runs **442 tests across 16 files** using Node's built-in runner. The 288 foundation tests
+are unchanged; 154 typography tests were added in Task 04. Coverage includes every scenario the
+original task required:
 
 | Required scenario | Where |
 |---|---|
@@ -260,8 +290,51 @@ scenario the task required:
 Additional coverage: schema versioning, unit conversion, colour parsing and WCAG measurement, ID
 helpers, script detection, factories, pattern-catalogue drift, and the admission boundary.
 
+Typography coverage (Task 04): font registration/metadata/containers/resolution/fallback,
+Latin/Bengali/Arabic/Urdu shaping with pinned glyph ids and clusters, advance-based measurement and
+spacing, Unicode wrapping and cluster-safe emergency breaks, bisection fitting with all three
+policies, overflow severities, bidi run ordering, the scene-node entry point, determinism and a
+regression guard on the public API and existing behaviour. See `docs/TYPOGRAPHY.md` §13.
+
 `npm run typecheck` runs `tsc --noEmit` under `strict`, `noUncheckedIndexedAccess`,
 `erasableSyntaxOnly` and `verbatimModuleSyntax`.
+
+### 8.1 Typography layer (Task 04)
+
+```
+TypographyToken (canonical, unchanged)
+        │
+        ▼
+ layout.ts ── shapeText ──► script-runs ──► shaper (HarfBuzz) ──► font-registry ──► font-record
+        │                                                                              │
+        │                                    ◄──────────── font-format ◄──────────────┘
+        ▼
+ line-break (graphemes + UAX #14 subset) ──► wrap ──► measure ──► overflow
+        │
+        ├──► fit.ts        (bisection over layoutText)
+        └──► engine.ts     (facade, caches, lazy HarfBuzz, scene-node entry point)
+```
+
+Design rules that the code and tests enforce:
+
+1. **One pipeline.** `measureText`, `wrapText` and `layoutText` all derive from the same
+   `layoutText` computation (`measureResultFrom`, `wrapResultFrom`), so they cannot disagree.
+2. **No second typography shape.** The engine consumes `TypographyToken` from `src/schema/types.ts`;
+   `wordSpacing` (absent from the token) is a request field and is reported back, and a nested
+   `wordSpacing` is warned about rather than silently honoured.
+3. **Diagnostics, not exceptions.** Input problems return a result with stable codes (foundation
+   `AGENTS.md` §3). There is no `throw` on the request path.
+4. **Measured claims only.** `scriptSupport()` and `FontMetadata.scriptCoverage` are derived from
+   the `cmap`, not from registration hints.
+5. **No silent substitution, reversal or splitting.** Fallbacks are reported, text is never
+   reversed, words are never split unless `overflowWrap` asks for it, and grapheme clusters are
+   never broken.
+6. **Determinism.** The same font bytes plus the same request give identical glyph ids, clusters,
+   advances and diagnostics; caches are transparent (`clearCaches()` must not change results).
+
+Known limits of this layer (full detail in `docs/TYPOGRAPHY.md`): WOFF2/.ttc are rejected, bidi is a
+level-1 approximation, line breaking is a UAX #14 subset without hyphenation, vertical writing and
+colour/variable axis support are absent, and no glyph outlines are produced.
 
 ## 9. The AI provider boundary (interface only)
 
@@ -333,8 +406,9 @@ vocabulary and are marked `provenance: 'derived'` so they are never mistaken for
 
 Stated plainly, because reporting them is part of the task:
 
-1. **No layout, geometry, measurement, rendering, export, editor, or AI provider.** Pattern
-   *selection*, text measurement and collision detection are future work.
+1. **No geometry/layout composition, rendering, export, editor, or AI provider.** Text
+   *measurement, wrapping and fitting* exist (Task 04), and pattern *selection guidance* exists;
+   composing measured text into a scene graph, and collision detection, are future work.
 2. **Brief parsing is heuristic.** It is deterministic and conservative, but it recognises specific
    label forms and keywords. Prose that uses unfamiliar phrasing lands in `unassignedContent` (by
    design) rather than being guessed at. It is not a language model and does not claim to be.
@@ -344,29 +418,33 @@ Stated plainly, because reporting them is part of the task:
    DPI, bleed and export, so the parser asks instead.
 5. **Pattern failure guidance is absent from the source document.** Recorded as a warning, not
    filled in.
-6. **No Zod-based JSON Schema export.** The contract is TypeScript plus a runtime validator; a
+6. **Typography limits.** WOFF2 and `.ttc` fonts are rejected; bidi is a level-1 approximation
+   (no embedding levels or isolates); line breaking is a documented UAX #14 subset without
+   hyphenation; vertical writing modes, variable-font axes and colour fonts are unsupported;
+   Nastaliq style depends on the supplied font and is only warned about, never synthesised.
+7. **No Zod-based JSON Schema export.** The contract is TypeScript plus a runtime validator; a
    machine-readable JSON Schema could be generated from it later if another language needs it.
    Deliberately deferred: generating one needs an extra generator dependency, and hand-authoring it
    would duplicate the canonical contract that this repository keeps single-sourced.
-7. **No AI provider exists.** `src/ai/` implements the seam and the validation of untrusted
+8. **No AI provider exists.** `src/ai/` implements the seam and the validation of untrusted
    proposals, not an integration. `NoAiProvider` is the default and rejects every request, so the
    shipped behaviour is fully deterministic and offline. Tests use hand-built fakes to exercise the
    seam; they are not evidence of model capability.
-8. **Per-pattern failure guidance is absent from the source document.** §19.1 lists `avoidWhen`,
+9. **Per-pattern failure guidance is absent from the source document.** §19.1 lists `avoidWhen`,
    `commonMistakes`, `validationChecks`, `adaptationRules` and `complexity`; the catalogue supplies
    only `Structure`, `Construction` and `Best for`. They are reported as missing, never invented.
-9. **Pattern selection guidance is advisory.** `assessPatternSelection` returns notes and gaps and
+10. **Pattern selection guidance is advisory.** `assessPatternSelection` returns notes and gaps and
    has no verdict field, so `validateDesignPlan` remains the only admission gate.
-7. **Category keyword lists are English/Bengali/Arabic/Urdu only** and are data in `extract.ts`, easy
+11. **Category keyword lists are English/Bengali/Arabic/Urdu only** and are data in `extract.ts`, easy
    to extend.
-8. **`DesignPlan` validation requires the brief for content-preservation checks.** Without it the
+12. **`DesignPlan` validation requires the brief for content-preservation checks.** Without it the
    result carries an explicit warning rather than a false pass.
 
 ## 12. Next steps (dependency order)
 
-1. **Text measurement and fitting** via a real shaping engine — the largest missing piece for honest
-   typography validation.
-2. **Deterministic layout/grid engine** consuming `CompositionPlan` + measurements.
+1. ~~Text measurement and fitting via a real shaping engine~~ — **done in Task 04**
+   (`src/typography/`, `docs/TYPOGRAPHY.md`).
+2. **Deterministic layout/grid engine** consuming `CompositionPlan` + `TextLayoutResult`.
 3. **Collision and safe-area analysis** in the Quality Engine, with declared-overlap support already
    modelled by `CompositionConstraints`.
 4. **Pattern selection** (not just metadata) as the Runtime AI Designer's first real job, with
