@@ -197,6 +197,7 @@ All commands were run in this checkout. Results are copied from actual output.
 | `npm run example` | `All expectations held.` (exit 0) |
 | `npm run check` | typecheck + 288 tests pass |
 | `npm run generate:knowledge` | 100 patterns / 10 categories, **no working-tree diff** |
+| `gh run view` (GitHub Actions) | run `46123624250` — **both legs success**, no annotations |
 
 ### Clean-clone verification (the actual Definition of Done)
 
@@ -273,7 +274,7 @@ invalid plan.
 | Valid plan passes validation | **Met** — `npm run example` §2 |
 | Invalid plan fails with meaningful errors | **Met** — 6 cases, each asserting its expected code |
 | Registry exposes composition metadata | **Met** — `npm run example` §4 |
-| CI for type check and tests | **Met** — `.github/workflows/ci.yml` (not yet observed running on GitHub) |
+| CI for type check and tests | **Met** — `.github/workflows/ci.yml`, **observed passing on GitHub** (runs 46123579175 and 46123624250; both matrix legs green, zero annotations) |
 
 ---
 
@@ -290,8 +291,8 @@ invalid plan.
    is hand-authored, because choosing one is a creative decision this repository does not make.
 5. **No JSON Schema export** (deliberate, per user decision).
 6. **No Zod** (deliberate; rationale in `docs/ARCHITECTURE.md` §2).
-7. **The CI workflow has not executed on GitHub from this session.** It was validated locally by
-   running every command it invokes, including the generator drift check.
+7. **CI is verified green on GitHub** for this branch (Node 22.18.0 and 22.x). It has not been
+   observed on a pull request into `main`, only on push, because no PR exists yet.
 8. **Brief parsing remains heuristic** — deterministic and conservative, not semantic understanding.
    Only English, Bengali, Arabic and Urdu script keywords are recognised.
 9. **No schema migrations** — only a supported-version window is enforced.
